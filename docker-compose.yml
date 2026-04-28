@@ -1,0 +1,132 @@
+# Intelligent Strategy Trading - Docker Compose
+# 
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose down           # Stop all services
+#   docker-compose logs -f api    # View API logs
+#   docker-compose ps             # Check status
+
+version: '3.8'
+
+services:
+  # Main API Service
+  api:
+    build: .
+    container_name: ist-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DATA_PATH=/app/data
+      - CACHE_ENABLED=true
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/ist}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - ist-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database (optional, for production)
+  db:
+    image: postgres:15-alpine
+    container_name: ist-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-ist}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - ist-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ist"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (optional, for production)
+  redis:
+    image: redis:7-alpine
+    container_name: ist-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ist-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Jupyter Notebook (optional, for analysis)
+  jupyter:
+    build: .
+    container_name: ist-jupyter
+    restart: unless-stopped
+    command: >
+      bash -c "pip install jupyterlab matplotlib seaborn &&
+               jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root
+               --NotebookApp.token='' --NotebookApp.password=''"
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./data:/app/data
+      - ./notebooks:/app/notebooks
+      - ./examples:/app/examples
+    depends_on:
+      - api
+    networks:
+      - ist-network
+    profiles:
+      - jupyter  # Only start with: docker-compose --profile jupyter up
+
+  # nginx reverse proxy (optional, for production)
+  nginx:
+    image: nginx:alpine
+    container_name: ist-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - ist-network
+    profiles:
+      - production  # Only start with: docker-compose --profile production up
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ist-network:
+    driver: bridge

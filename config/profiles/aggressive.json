@@ -1,0 +1,113 @@
+{
+  "profile_name": "Aggressive Alpha Strategy",
+  "target_annual_return": "15% - 25%",
+  "max_drawdown_limit": "15%",
+  "asset_allocation": {
+    "forex_majors": 0.25,
+    "gold_commodities": 0.10,
+    "index_cfds": 0.35,
+    "crypto_bluechips": 0.30
+  },
+  "rebalancing": {
+    "enabled": true,
+    "threshold_pct": 5.0,
+    "frequency": "intraday"
+  },
+  "risk_management": {
+    "path_simulation_runs": 20000,
+    "confidence_level": 0.99,
+    "stress_test_scenarios": ["2008_financial_crisis", "covid_crash", "crypto_winter", "flash_crash"],
+    "dynamic_position_sizing": true,
+    "max_position_size_pct": 0.25,
+    "volatility_target": 0.20,
+    "use_leverage": true,
+    "max_leverage": 2.0
+  },
+  "strategy_nodes": {
+    "version": "1.0",
+    "nodes": [
+      {
+        "id": "high_frequency_data",
+        "type": "DataSourceNode",
+        "params": {"symbols": ["EURUSD", "BTCUSD", "ETHUSD", "SPX500"], "timeframe": "5m"},
+        "position": {"x": 100, "y": 100}
+      },
+      {
+        "id": "ema_9",
+        "type": "IndicatorNode",
+        "params": {"indicator": "EMA", "period": 9},
+        "position": {"x": 300, "y": 50}
+      },
+      {
+        "id": "ema_21",
+        "type": "IndicatorNode",
+        "params": {"indicator": "EMA", "period": 21},
+        "position": {"x": 300, "y": 150}
+      },
+      {
+        "id": "macd",
+        "type": "IndicatorNode",
+        "params": {"indicator": "MACD", "fast": 12, "slow": 26, "signal": 9},
+        "position": {"x": 300, "y": 250}
+      },
+      {
+        "id": "bollinger",
+        "type": "IndicatorNode",
+        "params": {"indicator": "BollingerBands", "period": 20, "deviations": 2},
+        "position": {"x": 300, "y": 350}
+      },
+      {
+        "id": "multi_factor_signal",
+        "type": "ConditionNode",
+        "params": {
+          "condition": "multi_factor",
+          "factors": ["trend", "momentum", "volatility_regime"],
+          "weights": [0.4, 0.35, 0.25]
+        },
+        "position": {"x": 550, "y": 200}
+      },
+      {
+        "id": "dynamic_sizing",
+        "type": "RiskNode",
+        "params": {
+          "position_sizing": "kelly_criterion",
+          "max_position_pct": 0.20,
+          "volatility_scaling": true
+        },
+        "position": {"x": 800, "y": 200}
+      },
+      {
+        "id": "aggressive_entry",
+        "type": "ActionNode",
+        "params": {
+          "action": "buy",
+          "order_type": "market",
+          "time_in_force": "GTC"
+        },
+        "position": {"x": 1050, "y": 200}
+      },
+      {
+        "id": "trailing_stop",
+        "type": "ActionNode",
+        "params": {
+          "action": "trailing_stop",
+          "trail_pct": 3.0
+        },
+        "position": {"x": 1050, "y": 300}
+      }
+    ],
+    "connections": [
+      {"from": "high_frequency_data", "to": "ema_9"},
+      {"from": "high_frequency_data", "to": "ema_21"},
+      {"from": "high_frequency_data", "to": "macd"},
+      {"from": "high_frequency_data", "to": "bollinger"},
+      {"from": "ema_9", "to": "multi_factor_signal"},
+      {"from": "ema_21", "to": "multi_factor_signal"},
+      {"from": "macd", "to": "multi_factor_signal"},
+      {"from": "bollinger", "to": "multi_factor_signal"},
+      {"from": "multi_factor_signal", "to": "dynamic_sizing"},
+      {"from": "dynamic_sizing", "to": "aggressive_entry"},
+      {"from": "dynamic_sizing", "to": "trailing_stop"}
+    ]
+  }
+}
