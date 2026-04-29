@@ -58,3 +58,8 @@ class DataError(ISTError):
 class BacktestError(ISTError):
     """Raised when backtest operations fail."""
     pass
+
+
+class IndicatorError(ISTError):
+    """Raised when technical indicator calculation fails."""
+    pass
