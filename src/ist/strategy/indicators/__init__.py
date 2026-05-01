@@ -29,6 +29,7 @@ from ist.strategy.indicators.base import (
     IndicatorProtocol,
     IndicatorResult,
 )
+from ist.strategy.indicators.moving_averages import SMA, EMA
 
 __all__ = [
     # Base classes
@@ -37,4 +38,7 @@ __all__ = [
     "IndicatorInput",
     "IndicatorResult",
     "IndicatorProtocol",
+    # Moving averages
+    "SMA",
+    "EMA",
 ]

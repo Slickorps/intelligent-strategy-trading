@@ -10,6 +10,8 @@ from ist.strategy.indicators import (
     CachedIndicator,
     IndicatorInput,
     IndicatorResult,
+    SMA,
+    EMA,
 )
 
 
@@ -226,3 +228,211 @@ class TestIndicatorProtocol:
         assert hasattr(indicator, 'validate_input')
         assert callable(indicator.calculate)
         assert callable(indicator.validate_input)
+
+
+class TestSMA:
+    """Tests for Simple Moving Average (SMA) indicator."""
+    
+    def test_sma_initialization(self):
+        """Test SMA initialization with default and custom periods."""
+        # Default period
+        sma_default = SMA()
+        assert sma_default.name == "SMA"
+        assert sma_default.period == 20
+        assert sma_default.params == {"period": 20}
+        
+        # Custom period
+        sma_custom = SMA(period=10)
+        assert sma_custom.period == 10
+        assert sma_custom.params == {"period": 10}
+    
+    def test_sma_invalid_period_raises_error(self):
+        """Test that invalid period raises error."""
+        with pytest.raises(IndicatorError):
+            SMA(period=0)
+        with pytest.raises(IndicatorError):
+            SMA(period=-5)
+    
+    def test_sma_calculation(self):
+        """Test SMA calculation accuracy."""
+        # Test data: [1, 2, 3, 4, 5]
+        # SMA(3): [nan, nan, 2, 3, 4]
+        prices = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0])
+        sma = SMA(period=3)
+        data = IndicatorInput(close=prices)
+        
+        result = sma.calculate(data)
+        
+        # Check values (first 2 should be NaN with min_periods=1, but we use min_periods=1)
+        expected_values = [1.0, 1.5, 2.0, 3.0, 4.0]  # With min_periods=1
+        np.testing.assert_array_almost_equal(result.values.values, expected_values)
+        
+        # Check metadata
+        assert result.metadata["period"] == 3
+        assert result.metadata["method"] == "simple"
+    
+    def test_sma_insufficient_data_raises_error(self):
+        """Test that insufficient data raises error."""
+        sma = SMA(period=10)
+        short_data = IndicatorInput(close=pd.Series([1.0, 2.0, 3.0]))
+        
+        with pytest.raises(IndicatorError, match="Insufficient data"):
+            sma.calculate(short_data)
+    
+    def test_sma_input_validation(self):
+        """Test SMA input validation."""
+        sma = SMA(period=5)
+        
+        # Valid input
+        valid_data = IndicatorInput(close=pd.Series(range(10)))
+        assert sma.validate_input(valid_data)
+        
+        # Invalid input (too short)
+        invalid_data = IndicatorInput(close=pd.Series(range(3)))
+        assert not sma.validate_input(invalid_data)
+        
+        # Empty data
+        empty_data = IndicatorInput(close=pd.Series([]))
+        assert not sma.validate_input(empty_data)
+    
+    def test_sma_signal_generation(self):
+        """Test SMA trading signal generation."""
+        # Create price data that crosses SMA
+        prices = pd.Series([10, 11, 12, 11, 10, 9, 10, 11, 12])  # Price goes down then up
+        sma = SMA(period=3)
+        data = IndicatorInput(close=prices)
+        
+        result = sma.calculate(data)
+        
+        # Should have signals
+        assert result.signals is not None
+        assert len(result.signals) == len(prices)
+        
+        # Signals should be -1, 0, or 1
+        unique_signals = set(result.signals.dropna().unique())
+        assert unique_signals.issubset({-1, 0, 1})
+    
+    def test_sma_min_bars_required(self):
+        """Test SMA minimum bars requirement."""
+        sma = SMA(period=15)
+        assert sma.get_min_bars_required() == 15
+
+
+class TestEMA:
+    """Tests for Exponential Moving Average (EMA) indicator."""
+    
+    def test_ema_initialization(self):
+        """Test EMA initialization with default and custom periods."""
+        # Default period
+        ema_default = EMA()
+        assert ema_default.name == "EMA"
+        assert ema_default.period == 20
+        assert ema_default.params == {"period": 20}
+        
+        # Custom period
+        ema_custom = EMA(period=10)
+        assert ema_custom.period == 10
+        assert ema_custom.params == {"period": 10}
+        # Alpha should be 2/(period+1)
+        expected_alpha = 2.0 / (10 + 1)
+        assert ema_custom._alpha == expected_alpha
+    
+    def test_ema_invalid_period_raises_error(self):
+        """Test that invalid period raises error."""
+        with pytest.raises(IndicatorError):
+            EMA(period=0)
+        with pytest.raises(IndicatorError):
+            EMA(period=-5)
+    
+    def test_ema_calculation(self):
+        """Test EMA calculation accuracy."""
+        # Simple test data
+        prices = pd.Series([10.0, 12.0, 14.0, 16.0, 18.0])
+        ema = EMA(period=3)
+        data = IndicatorInput(close=prices)
+        
+        result = ema.calculate(data)
+        
+        # EMA should be calculated correctly
+        assert len(result.values) == len(prices)
+        assert not result.values.isna().all()
+        
+        # EMA should be more responsive than SMA (closer to recent prices)
+        sma = SMA(period=3)
+        sma_result = sma.calculate(data)
+        
+        # Last EMA should be closer to last price than SMA
+        last_price = prices.iloc[-1]
+        last_ema = result.values.iloc[-1]
+        last_sma = sma_result.values.iloc[-1]
+        
+        ema_distance = abs(last_ema - last_price)
+        sma_distance = abs(last_sma - last_price)
+        
+        # EMA should be closer to recent price (smaller distance)
+        assert ema_distance <= sma_distance
+        
+        # Check metadata
+        assert result.metadata["period"] == 3
+        assert result.metadata["method"] == "exponential"
+        assert "alpha" in result.metadata
+    
+    def test_ema_insufficient_data_raises_error(self):
+        """Test that insufficient data raises error."""
+        ema = EMA(period=10)
+        short_data = IndicatorInput(close=pd.Series([1.0, 2.0, 3.0]))
+        
+        with pytest.raises(IndicatorError, match="Insufficient data"):
+            ema.calculate(short_data)
+    
+    def test_ema_input_validation(self):
+        """Test EMA input validation."""
+        ema = EMA(period=5)
+        
+        # Valid input
+        valid_data = IndicatorInput(close=pd.Series(range(10)))
+        assert ema.validate_input(valid_data)
+        
+        # Invalid input (too short)
+        invalid_data = IndicatorInput(close=pd.Series(range(3)))
+        assert not ema.validate_input(invalid_data)
+        
+        # Empty data
+        empty_data = IndicatorInput(close=pd.Series([]))
+        assert not ema.validate_input(empty_data)
+    
+    def test_ema_signal_generation(self):
+        """Test EMA trading signal generation."""
+        # Create price data that crosses EMA
+        prices = pd.Series([10, 11, 12, 11, 10, 9, 10, 11, 12])  # Price goes down then up
+        ema = EMA(period=3)
+        data = IndicatorInput(close=prices)
+        
+        result = ema.calculate(data)
+        
+        # Should have signals
+        assert result.signals is not None
+        assert len(result.signals) == len(prices)
+        
+        # Signals should be -1, 0, or 1
+        unique_signals = set(result.signals.dropna().unique())
+        assert unique_signals.issubset({-1, 0, 1})
+    
+    def test_ema_min_bars_required(self):
+        """Test EMA minimum bars requirement."""
+        ema = EMA(period=15)
+        assert ema.get_min_bars_required() == 15
+    
+    def test_ema_alpha_calculation(self):
+        """Test EMA alpha (smoothing factor) calculation."""
+        # Test different periods
+        test_cases = [
+            (2, 2.0/3),    # α = 2/(2+1) = 2/3
+            (5, 2.0/6),    # α = 2/(5+1) = 1/3
+            (10, 2.0/11),  # α = 2/(10+1) = 2/11
+            (20, 2.0/21),  # α = 2/(20+1) = 2/21
+        ]
+        
+        for period, expected_alpha in test_cases:
+            ema = EMA(period=period)
+            np.testing.assert_almost_equal(ema._alpha, expected_alpha)
