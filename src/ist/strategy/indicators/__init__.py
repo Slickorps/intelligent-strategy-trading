@@ -30,6 +30,7 @@ from ist.strategy.indicators.base import (
     IndicatorResult,
 )
 from ist.strategy.indicators.moving_averages import SMA, EMA
+from ist.strategy.indicators.momentum import RSI
 
 __all__ = [
     # Base classes
@@ -41,4 +42,6 @@ __all__ = [
     # Moving averages
     "SMA",
     "EMA",
+    # Momentum
+    "RSI",
 ]

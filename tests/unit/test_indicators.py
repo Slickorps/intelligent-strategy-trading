@@ -12,6 +12,7 @@ from ist.strategy.indicators import (
     IndicatorResult,
     SMA,
     EMA,
+    RSI,
 )
 
 
@@ -436,3 +437,184 @@ class TestEMA:
         for period, expected_alpha in test_cases:
             ema = EMA(period=period)
             np.testing.assert_almost_equal(ema._alpha, expected_alpha)
+
+
+class TestRSI:
+    """Tests for Relative Strength Index (RSI) indicator."""
+    
+    def test_rsi_initialization_default(self):
+        """Test RSI initialization with default parameters."""
+        rsi = RSI()
+        assert rsi.name == "RSI"
+        assert rsi.period == 14
+        assert rsi.overbought == 70.0
+        assert rsi.oversold == 30.0
+        assert rsi.params == {"period": 14, "overbought": 70.0, "oversold": 30.0}
+    
+    def test_rsi_initialization_custom(self):
+        """Test RSI initialization with custom parameters."""
+        rsi = RSI(period=10, overbought=80, oversold=20)
+        assert rsi.period == 10
+        assert rsi.overbought == 80.0
+        assert rsi.oversold == 20.0
+    
+    def test_rsi_invalid_period_raises_error(self):
+        """Test that invalid period raises error."""
+        with pytest.raises(IndicatorError):
+            RSI(period=1)  # RSI needs at least 2 periods
+        with pytest.raises(IndicatorError):
+            RSI(period=0)
+    
+    def test_rsi_invalid_thresholds_raises_error(self):
+        """Test that invalid thresholds raise error."""
+        # Overbought <= oversold
+        with pytest.raises(IndicatorError):
+            RSI(overbought=30, oversold=70)
+        with pytest.raises(IndicatorError):
+            RSI(overbought=30, oversold=30)
+        # Thresholds outside 0-100
+        with pytest.raises(IndicatorError):
+            RSI(overbought=110)
+        with pytest.raises(IndicatorError):
+            RSI(oversold=-10)
+    
+    def test_rsi_calculation_basic(self):
+        """Test RSI calculation with basic price data."""
+        # Create price data with upward trend
+        prices = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0])
+        rsi = RSI(period=5)  # Use shorter period for test
+        data = IndicatorInput(close=prices)
+        
+        result = rsi.calculate(data)
+        
+        # RSI should be calculated
+        assert len(result.values) == len(prices)
+        # With upward trend, RSI should be high (close to 100)
+        assert result.values.iloc[-1] > 50
+        # RSI values should be between 0 and 100
+        assert (result.values >= 0).all()
+        assert (result.values <= 100).all()
+    
+    def test_rsi_calculation_downtrend(self):
+        """Test RSI calculation during downtrend."""
+        # Create price data with downward trend
+        prices = pd.Series([20.0, 19.0, 18.0, 17.0, 16.0, 15.0, 14.0, 13.0, 12.0, 11.0, 10.0])
+        rsi = RSI(period=5)
+        data = IndicatorInput(close=prices)
+        
+        result = rsi.calculate(data)
+        
+        # With downward trend, RSI should be low
+        assert result.values.iloc[-1] < 50
+    
+    def test_rsi_insufficient_data_raises_error(self):
+        """Test that insufficient data raises error."""
+        rsi = RSI(period=10)
+        # Need period + 1 data points
+        short_data = IndicatorInput(close=pd.Series(range(10)))
+        
+        with pytest.raises(IndicatorError, match="Insufficient data"):
+            rsi.calculate(short_data)
+    
+    def test_rsi_input_validation(self):
+        """Test RSI input validation."""
+        rsi = RSI(period=5)
+        
+        # Valid input (need 6 data points for period=5)
+        valid_data = IndicatorInput(close=pd.Series(range(10)))
+        assert rsi.validate_input(valid_data)
+        
+        # Invalid input (too short)
+        invalid_data = IndicatorInput(close=pd.Series(range(5)))
+        assert not rsi.validate_input(invalid_data)
+        
+        # Empty data
+        empty_data = IndicatorInput(close=pd.Series([]))
+        assert not rsi.validate_input(empty_data)
+    
+    def test_rsi_min_bars_required(self):
+        """Test RSI minimum bars requirement."""
+        rsi = RSI(period=14)
+        # RSI needs period + 1 bars because of diff()
+        assert rsi.get_min_bars_required() == 15
+    
+    def test_rsi_overbought_oversold_checks(self):
+        """Test overbought and oversold check methods."""
+        rsi = RSI(overbought=70, oversold=30)
+        
+        assert rsi.is_overbought(75)
+        assert rsi.is_overbought(70)
+        assert not rsi.is_overbought(69)
+        
+        assert rsi.is_oversold(25)
+        assert rsi.is_oversold(30)
+        assert not rsi.is_oversold(31)
+    
+    def test_rsi_bands_in_result(self):
+        """Test that RSI result includes overbought/oversold bands."""
+        prices = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0])
+        rsi = RSI(period=5, overbought=75, oversold=25)
+        data = IndicatorInput(close=prices)
+        
+        result = rsi.calculate(data)
+        
+        # Result should include upper and lower bands
+        assert result.upper_band is not None
+        assert result.lower_band is not None
+        # Bands should match thresholds
+        assert result.upper_band.iloc[0] == 75
+        assert result.lower_band.iloc[0] == 25
+    
+    def test_rsi_signal_generation(self):
+        """Test RSI signal generation."""
+        # Create price data that enters and exits oversold/overbought zones
+        # Pattern: neutral -> oversold -> neutral -> overbought -> neutral
+        prices = pd.Series([
+            50, 48, 46, 44, 42, 40, 38,  # Downward to oversold
+            40, 42, 44, 46, 48, 50, 52,  # Upward to neutral then overbought
+            80, 82, 84,                  # Upward to overbought
+            82, 80, 78, 76               # Downward back to neutral
+        ])
+        rsi = RSI(period=5, overbought=70, oversold=30)
+        data = IndicatorInput(close=prices)
+        
+        result = rsi.calculate(data)
+        
+        # Should have signals
+        assert result.signals is not None
+        assert len(result.signals) == len(prices)
+        
+        # Signals should be -1, 0, or 1
+        unique_signals = set(result.signals.dropna().unique())
+        assert unique_signals.issubset({-1, 0, 1})
+        
+        # Buy signals should occur when leaving oversold
+        # Sell signals should occur when leaving overbought
+    
+    def test_rsi_signal_description(self):
+        """Test RSI signal description method."""
+        rsi = RSI(overbought=70, oversold=30)
+        
+        desc_buy = rsi.get_signal_description(1)
+        desc_sell = rsi.get_signal_description(-1)
+        desc_hold = rsi.get_signal_description(0)
+        
+        assert "Buy" in desc_buy or "buy" in desc_buy
+        assert "Sell" in desc_sell or "sell" in desc_sell
+        assert "Hold" in desc_hold or "hold" in desc_hold or "neutral" in desc_hold
+    
+    def test_rsi_metadata(self):
+        """Test RSI metadata in result."""
+        prices = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0])
+        rsi = RSI(period=3, overbought=80, oversold=20)
+        data = IndicatorInput(close=prices)
+        
+        result = rsi.calculate(data)
+        
+        assert "period" in result.metadata
+        assert "overbought" in result.metadata
+        assert "oversold" in result.metadata
+        assert "method" in result.metadata
+        assert result.metadata["period"] == 3
+        assert result.metadata["overbought"] == 80
+        assert result.metadata["oversold"] == 20
