@@ -13,6 +13,7 @@ from ist.strategy.indicators import (
     SMA,
     EMA,
     RSI,
+    MACD,
 )
 
 
@@ -618,3 +619,207 @@ class TestRSI:
         assert result.metadata["period"] == 3
         assert result.metadata["overbought"] == 80
         assert result.metadata["oversold"] == 20
+
+
+class TestMACD:
+    """Tests for Moving Average Convergence Divergence (MACD) indicator."""
+    
+    def test_macd_initialization_default(self):
+        """Test MACD initialization with default parameters."""
+        macd = MACD()
+        assert macd.name == "MACD"
+        assert macd.fast_period == 12
+        assert macd.slow_period == 26
+        assert macd.signal_period == 9
+        assert macd.params == {"fast_period": 12, "slow_period": 26, "signal_period": 9}
+    
+    def test_macd_initialization_custom(self):
+        """Test MACD initialization with custom parameters."""
+        macd = MACD(fast_period=5, slow_period=15, signal_period=5)
+        assert macd.fast_period == 5
+        assert macd.slow_period == 15
+        assert macd.signal_period == 5
+    
+    def test_macd_invalid_periods_raises_error(self):
+        """Test that invalid periods raise error."""
+        # Fast >= slow
+        with pytest.raises(IndicatorError):
+            MACD(fast_period=26, slow_period=12)
+        with pytest.raises(IndicatorError):
+            MACD(fast_period=26, slow_period=26)
+        # Period < 1
+        with pytest.raises(IndicatorError):
+            MACD(fast_period=0)
+        with pytest.raises(IndicatorError):
+            MACD(slow_period=0)
+        with pytest.raises(IndicatorError):
+            MACD(signal_period=0)
+    
+    def test_macd_calculation_structure(self):
+        """Test MACD calculation produces correct structure."""
+        # Create sufficient price data
+        prices = pd.Series([10.0 + i * 0.5 for i in range(50)])
+        macd = MACD(fast_period=12, slow_period=26, signal_period=9)
+        data = IndicatorInput(close=prices)
+        
+        result = macd.calculate(data)
+        
+        # Check all components exist
+        assert result.values is not None  # MACD line
+        assert result.signal_line is not None
+        assert result.histogram is not None
+        assert result.signals is not None
+        
+        # Check lengths match
+        assert len(result.values) == len(prices)
+        assert len(result.signal_line) == len(prices)
+        assert len(result.histogram) == len(prices)
+        assert len(result.signals) == len(prices)
+        
+        # Histogram = MACD - Signal
+        expected_histogram = result.values - result.signal_line
+        pd.testing.assert_series_equal(result.histogram, expected_histogram)
+    
+    def test_macd_calculation_values(self):
+        """Test MACD calculation produces reasonable values."""
+        # Create price data with clear trend
+        prices = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0] * 5)
+        macd = MACD(fast_period=3, slow_period=6, signal_period=2)
+        data = IndicatorInput(close=prices)
+        
+        result = macd.calculate(data)
+        
+        # MACD line should be calculated
+        assert not result.values.isna().all()
+        # In uptrend, fast EMA > slow EMA, so MACD should be positive
+        assert result.values.iloc[-1] > 0
+    
+    def test_macd_insufficient_data_raises_error(self):
+        """Test that insufficient data raises error."""
+        macd = MACD(fast_period=12, slow_period=26, signal_period=9)
+        short_data = IndicatorInput(close=pd.Series(range(20)))
+        
+        with pytest.raises(IndicatorError, match="Insufficient data"):
+            macd.calculate(short_data)
+    
+    def test_macd_input_validation(self):
+        """Test MACD input validation."""
+        macd = MACD(fast_period=3, slow_period=6, signal_period=2)
+        
+        # Valid input (need at least slow_period data points)
+        valid_data = IndicatorInput(close=pd.Series(range(10)))
+        assert macd.validate_input(valid_data)
+        
+        # Invalid input (too short)
+        invalid_data = IndicatorInput(close=pd.Series(range(5)))
+        assert not macd.validate_input(invalid_data)
+        
+        # Empty data
+        empty_data = IndicatorInput(close=pd.Series([]))
+        assert not macd.validate_input(empty_data)
+    
+    def test_macd_min_bars_required(self):
+        """Test MACD minimum bars requirement."""
+        macd = MACD(fast_period=12, slow_period=26, signal_period=9)
+        assert macd.get_min_bars_required() == 26
+    
+    def test_macd_golden_cross_detection(self):
+        """Test golden cross detection."""
+        # MACD line crossing above signal line
+        macd_line = pd.Series([1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 4.0])
+        signal_line = pd.Series([2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+        
+        macd = MACD()
+        
+        # Golden cross at index 5 (MACD goes from below to above signal)
+        assert macd.is_golden_cross(macd_line, signal_line, index=5)
+        # Not a golden cross at index 6 (already above)
+        assert not macd.is_golden_cross(macd_line, signal_line, index=6)
+        # Not a golden cross at index 4 (still below)
+        assert not macd.is_golden_cross(macd_line, signal_line, index=4)
+    
+    def test_macd_death_cross_detection(self):
+        """Test death cross detection."""
+        # MACD line crossing below signal line
+        macd_line = pd.Series([4.0, 3.0, 2.0, 3.0, 4.0, 3.0, 2.0, 1.0])
+        signal_line = pd.Series([2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+        
+        macd = MACD()
+        
+        # Death cross at index 5 (MACD goes from above to below signal)
+        assert macd.is_death_cross(macd_line, signal_line, index=5)
+        # Not a death cross at index 6 (already below)
+        assert not macd.is_death_cross(macd_line, signal_line, index=6)
+        # Not a death cross at index 4 (still above)
+        assert not macd.is_death_cross(macd_line, signal_line, index=4)
+    
+    def test_macd_crossover_type(self):
+        """Test crossover type detection."""
+        macd_line = pd.Series([1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 4.0])
+        signal_line = pd.Series([2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+        
+        macd = MACD()
+        
+        assert macd.get_crossover_type(macd_line, signal_line, index=5) == "golden"
+        assert macd.get_crossover_type(macd_line, signal_line, index=6) == "none"
+        
+        # Test death cross
+        macd_line2 = pd.Series([4.0, 3.0, 2.0, 3.0, 4.0, 3.0, 2.0, 1.0])
+        signal_line2 = pd.Series([2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0])
+        
+        assert macd.get_crossover_type(macd_line2, signal_line2, index=5) == "death"
+    
+    def test_macd_signal_generation(self):
+        """Test MACD trading signal generation."""
+        # Create price data that produces crossovers
+        prices = pd.Series([
+            10, 12, 14, 16, 18,  # Uptrend
+            17, 16, 15, 14, 13,  # Downtrend
+            14, 15, 16, 17, 18,  # Uptrend
+        ])
+        macd = MACD(fast_period=3, slow_period=6, signal_period=2)
+        data = IndicatorInput(close=prices)
+        
+        result = macd.calculate(data)
+        
+        # Should have signals
+        assert result.signals is not None
+        assert len(result.signals) == len(prices)
+        
+        # Signals should be -1, 0, or 1
+        unique_signals = set(result.signals.dropna().unique())
+        assert unique_signals.issubset({-1, 0, 1})
+        
+        # Should have at least one buy or sell signal
+        assert (result.signals != 0).any()
+    
+    def test_macd_signal_description(self):
+        """Test MACD signal description method."""
+        macd = MACD()
+        
+        desc_buy = macd.get_signal_description(1)
+        desc_sell = macd.get_signal_description(-1)
+        desc_hold = macd.get_signal_description(0)
+        
+        assert "Buy" in desc_buy or "buy" in desc_buy
+        assert "golden" in desc_buy.lower() or "crosses above" in desc_buy.lower()
+        assert "Sell" in desc_sell or "sell" in desc_sell
+        assert "death" in desc_sell.lower() or "crosses below" in desc_sell.lower()
+        assert "Hold" in desc_hold or "hold" in desc_hold or "No" in desc_hold
+    
+    def test_macd_metadata(self):
+        """Test MACD metadata in result."""
+        prices = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0] * 3)
+        macd = MACD(fast_period=5, slow_period=10, signal_period=3)
+        data = IndicatorInput(close=prices)
+        
+        result = macd.calculate(data)
+        
+        assert "fast_period" in result.metadata
+        assert "slow_period" in result.metadata
+        assert "signal_period" in result.metadata
+        assert "method" in result.metadata
+        assert result.metadata["fast_period"] == 5
+        assert result.metadata["slow_period"] == 10
+        assert result.metadata["signal_period"] == 3
+        assert result.metadata["method"] == "ema"
