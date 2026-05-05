@@ -32,6 +32,7 @@ from ist.strategy.indicators.base import (
 from ist.strategy.indicators.moving_averages import SMA, EMA
 from ist.strategy.indicators.momentum import RSI
 from ist.strategy.indicators.trend import MACD
+from ist.strategy.indicators.volatility import ATR, BollingerBands
 
 __all__ = [
     # Base classes
@@ -47,4 +48,7 @@ __all__ = [
     "RSI",
     # Trend
     "MACD",
+    # Volatility
+    "ATR",
+    "BollingerBands",
 ]

@@ -14,6 +14,8 @@ from ist.strategy.indicators import (
     EMA,
     RSI,
     MACD,
+    ATR,
+    BollingerBands,
 )
 
 
@@ -823,3 +825,333 @@ class TestMACD:
         assert result.metadata["slow_period"] == 10
         assert result.metadata["signal_period"] == 3
         assert result.metadata["method"] == "ema"
+
+
+class TestATR:
+    """Tests for Average True Range (ATR) indicator."""
+    
+    def test_atr_initialization_default(self):
+        """Test ATR initialization with default parameters."""
+        atr = ATR()
+        assert atr.name == "ATR"
+        assert atr.period == 14
+        assert atr.use_wilder == True
+        assert atr.params == {"period": 14, "use_wilder": True}
+    
+    def test_atr_initialization_custom(self):
+        """Test ATR initialization with custom parameters."""
+        atr = ATR(period=10, use_wilder=False)
+        assert atr.period == 10
+        assert atr.use_wilder == False
+        assert atr.params == {"period": 10, "use_wilder": False}
+    
+    def test_atr_invalid_period_raises_error(self):
+        """Test that invalid period raises error."""
+        with pytest.raises(IndicatorError):
+            ATR(period=0)
+        with pytest.raises(IndicatorError):
+            ATR(period=-5)
+    
+    def test_atr_calculation_basic(self):
+        """Test ATR calculation with basic price data."""
+        high = pd.Series([12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+        low = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0])
+        close = pd.Series([11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0])
+        
+        atr = ATR(period=5)
+        data = IndicatorInput(high=high, low=low, close=close)
+        
+        result = atr.calculate(data)
+        
+        # ATR should be calculated
+        assert len(result.values) == len(close)
+        # ATR should be positive
+        assert (result.values > 0).all()
+        # First value uses simple average of first period
+        assert not pd.isna(result.values.iloc[5])
+    
+    def test_atr_requires_ohlc_data(self):
+        """Test that ATR requires high, low, close data."""
+        atr = ATR(period=5)
+        
+        # Missing high
+        with pytest.raises(IndicatorError):
+            data = IndicatorInput(low=pd.Series([1, 2, 3]), close=pd.Series([2, 3, 4]))
+            atr.calculate(data)
+        
+        # Missing low
+        with pytest.raises(IndicatorError):
+            data = IndicatorInput(high=pd.Series([3, 4, 5]), close=pd.Series([2, 3, 4]))
+            atr.calculate(data)
+    
+    def test_atr_insufficient_data_raises_error(self):
+        """Test that insufficient data raises error."""
+        atr = ATR(period=10)
+        high = pd.Series(range(10))
+        low = pd.Series(range(10))
+        close = pd.Series(range(10))
+        short_data = IndicatorInput(high=high, low=low, close=close)
+        
+        with pytest.raises(IndicatorError, match="Insufficient data"):
+            atr.calculate(short_data)
+    
+    def test_atr_input_validation(self):
+        """Test ATR input validation."""
+        atr = ATR(period=5)
+        
+        # Valid input (need period + 1 data points)
+        high = pd.Series(range(15))
+        low = pd.Series(range(15))
+        close = pd.Series(range(15))
+        valid_data = IndicatorInput(high=high, low=low, close=close)
+        assert atr.validate_input(valid_data)
+        
+        # Invalid input (too short)
+        high_short = pd.Series(range(5))
+        low_short = pd.Series(range(5))
+        close_short = pd.Series(range(5))
+        invalid_data = IndicatorInput(high=high_short, low=low_short, close=close_short)
+        assert not atr.validate_input(invalid_data)
+    
+    def test_atr_min_bars_required(self):
+        """Test ATR minimum bars requirement."""
+        atr = ATR(period=14)
+        # ATR needs period + 1 bars for true range calculation
+        assert atr.get_min_bars_required() == 15
+    
+    def test_atr_wilder_vs_sma(self):
+        """Test ATR with Wilder's smoothing vs SMA."""
+        high = pd.Series([12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+        low = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0])
+        close = pd.Series([11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0])
+        data = IndicatorInput(high=high, low=low, close=close)
+        
+        atr_wilder = ATR(period=5, use_wilder=True)
+        atr_sma = ATR(period=5, use_wilder=False)
+        
+        result_wilder = atr_wilder.calculate(data)
+        result_sma = atr_sma.calculate(data)
+        
+        # Both should produce valid results
+        assert len(result_wilder.values) == len(close)
+        assert len(result_sma.values) == len(close)
+        
+        # Metadata should reflect method
+        assert result_wilder.metadata["method"] == "wilder"
+        assert result_sma.metadata["method"] == "sma"
+    
+    def test_atr_metadata(self):
+        """Test ATR metadata in result."""
+        high = pd.Series([12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0])
+        low = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0])
+        close = pd.Series([11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0])
+        
+        atr = ATR(period=5, use_wilder=True)
+        data = IndicatorInput(high=high, low=low, close=close)
+        
+        result = atr.calculate(data)
+        
+        assert "period" in result.metadata
+        assert "use_wilder" in result.metadata
+        assert "method" in result.metadata
+        assert result.metadata["period"] == 5
+        assert result.metadata["use_wilder"] == True
+
+
+class TestBollingerBands:
+    """Tests for Bollinger Bands indicator."""
+    
+    def test_bb_initialization_default(self):
+        """Test Bollinger Bands initialization with default parameters."""
+        bb = BollingerBands()
+        assert bb.name == "BollingerBands"
+        assert bb.period == 20
+        assert bb.multiplier == 2.0
+        assert bb.params == {"period": 20, "multiplier": 2.0}
+    
+    def test_bb_initialization_custom(self):
+        """Test Bollinger Bands initialization with custom parameters."""
+        bb = BollingerBands(period=10, multiplier=1.5)
+        assert bb.period == 10
+        assert bb.multiplier == 1.5
+    
+    def test_bb_invalid_params_raises_error(self):
+        """Test that invalid parameters raise error."""
+        with pytest.raises(IndicatorError):
+            BollingerBands(period=1)  # Period must be >= 2
+        with pytest.raises(IndicatorError):
+            BollingerBands(period=0)
+        with pytest.raises(IndicatorError):
+            BollingerBands(multiplier=0)  # Multiplier must be > 0
+        with pytest.raises(IndicatorError):
+            BollingerBands(multiplier=-1)
+    
+    def test_bb_calculation_structure(self):
+        """Test Bollinger Bands calculation produces correct structure."""
+        # Create price data
+        prices = pd.Series([10.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0, 14.0, 16.0, 15.0])
+        
+        bb = BollingerBands(period=5, multiplier=2.0)
+        data = IndicatorInput(close=prices)
+        
+        result = bb.calculate(data)
+        
+        # Check all components exist
+        assert result.values is not None  # Middle band (SMA)
+        assert result.upper_band is not None
+        assert result.lower_band is not None
+        assert result.histogram is not None  # Bandwidth
+        assert result.signals is not None
+        
+        # Check lengths match
+        assert len(result.values) == len(prices)
+        assert len(result.upper_band) == len(prices)
+        assert len(result.lower_band) == len(prices)
+        assert len(result.histogram) == len(prices)
+    
+    def test_bb_band_relationships(self):
+        """Test Bollinger Bands mathematical relationships."""
+        prices = pd.Series([10.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0, 14.0, 16.0, 15.0])
+        
+        bb = BollingerBands(period=5, multiplier=2.0)
+        data = IndicatorInput(close=prices)
+        
+        result = bb.calculate(data)
+        
+        # Upper band should be >= middle band
+        assert (result.upper_band >= result.values).all()
+        # Lower band should be <= middle band
+        assert (result.lower_band <= result.values).all()
+        # Upper band should be >= lower band
+        assert (result.upper_band >= result.lower_band).all()
+    
+    def test_bb_calculation_values(self):
+        """Test Bollinger Bands calculation produces reasonable values."""
+        # Create price data with known values
+        prices = pd.Series([10.0, 11.0, 12.0, 13.0, 14.0, 15.0])
+        
+        bb = BollingerBands(period=5, multiplier=2.0)
+        data = IndicatorInput(close=prices)
+        
+        result = bb.calculate(data)
+        
+        # Middle band should be SMA
+        expected_middle = prices.rolling(window=5, min_periods=1).mean().iloc[-1]
+        assert abs(result.values.iloc[-1] - expected_middle) < 0.01
+    
+    def test_bb_insufficient_data_raises_error(self):
+        """Test that insufficient data raises error."""
+        bb = BollingerBands(period=10)
+        short_data = IndicatorInput(close=pd.Series(range(5)))
+        
+        with pytest.raises(IndicatorError, match="Insufficient data"):
+            bb.calculate(short_data)
+    
+    def test_bb_input_validation(self):
+        """Test Bollinger Bands input validation."""
+        bb = BollingerBands(period=5)
+        
+        # Valid input
+        valid_data = IndicatorInput(close=pd.Series(range(10)))
+        assert bb.validate_input(valid_data)
+        
+        # Invalid input (too short)
+        invalid_data = IndicatorInput(close=pd.Series(range(3)))
+        assert not bb.validate_input(invalid_data)
+        
+        # Empty data
+        empty_data = IndicatorInput(close=pd.Series([]))
+        assert not bb.validate_input(empty_data)
+    
+    def test_bb_min_bars_required(self):
+        """Test Bollinger Bands minimum bars requirement."""
+        bb = BollingerBands(period=20)
+        assert bb.get_min_bars_required() == 20
+    
+    def test_bb_percent_b_calculation(self):
+        """Test %b calculation methods."""
+        bb = BollingerBands(period=5, multiplier=2.0)
+        
+        # Test get_percent_b method
+        percent_b = bb.get_percent_b(price=15.0, upper=20.0, lower=10.0)
+        assert percent_b == 0.5  # Halfway between lower and upper
+        
+        percent_b_lower = bb.get_percent_b(price=10.0, upper=20.0, lower=10.0)
+        assert percent_b_lower == 0.0  # At lower band
+        
+        percent_b_upper = bb.get_percent_b(price=20.0, upper=20.0, lower=10.0)
+        assert percent_b_upper == 1.0  # At upper band
+        
+        # Edge case: upper == lower
+        percent_b_edge = bb.get_percent_b(price=15.0, upper=10.0, lower=10.0)
+        assert percent_b_edge == 0.5  # Should return 0.5 to avoid division by zero
+    
+    def test_bb_bandwidth_calculation(self):
+        """Test bandwidth calculation methods."""
+        bb = BollingerBands(period=5, multiplier=2.0)
+        
+        # Test get_bandwidth method
+        bandwidth = bb.get_bandwidth(upper=22.0, lower=18.0, middle=20.0)
+        assert bandwidth == 20.0  # ((22-18)/20) * 100 = 20%
+        
+        # Edge case: middle == 0
+        bandwidth_zero = bb.get_bandwidth(upper=2.0, lower=-2.0, middle=0.0)
+        assert bandwidth_zero == 0.0
+    
+    def test_bb_price_position_checks(self):
+        """Test price position relative to bands."""
+        bb = BollingerBands(period=5, multiplier=2.0)
+        
+        # Above upper band
+        assert bb.is_price_above_upper(price=25.0, upper_band=22.0)
+        assert not bb.is_price_above_upper(price=20.0, upper_band=22.0)
+        
+        # Below lower band
+        assert bb.is_price_below_lower(price=15.0, lower_band=18.0)
+        assert not bb.is_price_below_lower(price=20.0, lower_band=18.0)
+    
+    def test_bb_signal_generation(self):
+        """Test Bollinger Bands trading signal generation."""
+        # Create price data that touches bands
+        prices = pd.Series([10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 20.0, 16.0, 12.0, 8.0, 12.0, 16.0])
+        
+        bb = BollingerBands(period=5, multiplier=1.5)
+        data = IndicatorInput(close=prices)
+        
+        result = bb.calculate(data)
+        
+        # Should have signals
+        assert result.signals is not None
+        assert len(result.signals) == len(prices)
+        
+        # Signals should be -1, 0, or 1
+        unique_signals = set(result.signals.dropna().unique())
+        assert unique_signals.issubset({-1, 0, 1})
+    
+    def test_bb_signal_description(self):
+        """Test Bollinger Bands signal description method."""
+        bb = BollingerBands()
+        
+        desc_buy = bb.get_signal_description(1)
+        desc_sell = bb.get_signal_description(-1)
+        desc_hold = bb.get_signal_description(0)
+        
+        assert "Buy" in desc_buy or "buy" in desc_buy
+        assert "Sell" in desc_sell or "sell" in desc_sell
+        assert "Hold" in desc_hold or "hold" in desc_hold or "within" in desc_hold
+    
+    def test_bb_metadata(self):
+        """Test Bollinger Bands metadata in result."""
+        prices = pd.Series([10.0, 12.0, 11.0, 13.0, 12.0, 14.0, 13.0, 15.0, 14.0, 16.0, 15.0])
+        bb = BollingerBands(period=5, multiplier=2.0)
+        data = IndicatorInput(close=prices)
+        
+        result = bb.calculate(data)
+        
+        assert "period" in result.metadata
+        assert "multiplier" in result.metadata
+        assert "method" in result.metadata
+        assert "percent_b" in result.metadata
+        assert result.metadata["period"] == 5
+        assert result.metadata["multiplier"] == 2.0
+        assert result.metadata["method"] == "sma"
