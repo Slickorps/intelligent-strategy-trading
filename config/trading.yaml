@@ -1,0 +1,133 @@
+# Trading configuration for Intelligent Strategy Trading Platform
+# This file contains trading strategy parameters and settings
+
+# General trading settings
+trading:
+  default_timeframe: "1h"
+  max_positions: 10
+  risk_per_trade: 0.02  # 2% risk per trade
+  max_risk: 0.20  # 20% maximum portfolio risk
+  commission_rate: 0.001  # 0.1% commission
+  slippage: 0.0001  # 0.01% slippage
+  
+# Risk management
+risk_management:
+  max_drawdown: 0.15  # 15% maximum drawdown
+  stop_loss_atr_multiplier: 2.0
+  take_profit_atr_multiplier: 3.0
+  position_sizing_method: "fixed_risk"  # fixed_risk, fixed_amount, percentage
+  max_position_size: 0.10  # 10% maximum position size
+  
+# Strategy parameters
+strategies:
+  sma_crossover:
+    enabled: true
+    fast_period: 10
+    slow_period: 20
+    signal_threshold: 0.001
+    
+  rsi_mean_reversion:
+    enabled: true
+    period: 14
+    oversold_level: 30
+    overbought_level: 70
+    exit_level: 50
+    
+  macd_momentum:
+    enabled: true
+    fast_period: 12
+    slow_period: 26
+    signal_period: 9
+    histogram_threshold: 0.0001
+    
+  bollinger_bands:
+    enabled: true
+    period: 20
+    multiplier: 2.0
+    entry_threshold: 0.1  # 10% outside bands
+    
+  atr_volatility:
+    enabled: true
+    period: 14
+    volatility_threshold: 0.02  # 2% volatility threshold
+
+# Market data settings
+market_data:
+  data_sources:
+    - name: "yahoo_finance"
+      enabled: true
+      priority: 1
+      rate_limit: 2000  # requests per hour
+    
+    - name: "alpha_vantage"
+      enabled: false
+      priority: 2
+      api_key: ""
+      rate_limit: 500  # requests per day
+  
+  cache_duration: 300  # 5 minutes
+  historical_days: 365
+  update_interval: 60  # seconds
+
+# Symbols and markets
+symbols:
+  forex:
+    - "EUR/USD"
+    - "GBP/USD"
+    - "USD/JPY"
+    - "AUD/USD"
+    - "USD/CHF"
+  
+  crypto:
+    - "BTC/USDT"
+    - "ETH/USDT"
+    - "BNB/USDT"
+    - "ADA/USDT"
+    - "SOL/USDT"
+  
+  stocks:
+    - "AAPL"
+    - "GOOGL"
+    - "MSFT"
+    - "AMZN"
+    - "TSLA"
+
+# Backtesting settings
+backtesting:
+  initial_capital: 100000
+  start_date: "2020-01-01"
+  end_date: "2023-12-31"
+  benchmark: "SPY"
+  rebalance_frequency: "daily"
+  allow_short: true
+  commission: 0.001
+  slippage: 0.0001
+
+# Performance monitoring
+monitoring:
+  metrics_update_interval: 300  # 5 minutes
+  alert_thresholds:
+    max_drawdown: 0.10  # 10%
+    consecutive_losses: 5
+    daily_loss: 0.05  # 5%
+  notifications:
+    email: false
+    slack: false
+    webhook: ""
+
+# Execution settings
+execution:
+  order_type: "market"  # market, limit, stop
+  execution_delay: 0.1  # seconds
+  retry_attempts: 3
+  retry_delay: 1.0  # seconds
+  partial_fill_handling: "cancel"  # cancel, wait, adjust
+
+# Logging and debugging
+debug:
+  log_orders: true
+  log_signals: true
+  log_performance: true
+  save_trades: true
+  save_indicators: true
+  debug_mode: false

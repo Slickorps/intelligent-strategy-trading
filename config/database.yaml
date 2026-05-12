@@ -1,0 +1,72 @@
+# Database configuration for Intelligent Strategy Trading Platform
+# This file contains database connection settings and configurations
+
+# PostgreSQL configuration
+postgresql:
+  host: localhost
+  port: 5432
+  database: trading_db
+  username: trading_user
+  password: trading_pass
+  pool_size: 10
+  max_overflow: 20
+  pool_timeout: 30
+  pool_recycle: 3600
+  echo: false
+  ssl_mode: prefer
+
+# Redis configuration
+redis:
+  host: localhost
+  port: 6379
+  db: 0
+  password: null
+  max_connections: 20
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  retry_on_timeout: true
+  health_check_interval: 30
+
+# Connection strings
+connection_strings:
+  postgresql: "postgresql://trading_user:trading_pass@localhost:5432/trading_db"
+  redis: "redis://localhost:6379/0"
+
+# Database settings
+settings:
+  auto_commit: true
+  auto_flush: true
+  expire_on_commit: false
+  session_timeout: 3600
+  query_timeout: 30
+  connection_retry_attempts: 3
+  connection_retry_delay: 1
+
+# Backup settings
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  backup_path: "backups/"
+  compress: true
+  include_tables:
+    - users
+    - strategies
+    - trades
+    - trading_signals
+  exclude_tables:
+    - indicator_values
+
+# Migration settings
+migration:
+  auto_migrate: false
+  migration_path: "migrations/"
+  backup_before_migration: true
+  validate_migration: true
+
+# Monitoring
+monitoring:
+  slow_query_threshold: 1.0  # seconds
+  log_slow_queries: true
+  connection_pool_monitoring: true
+  health_check_interval: 60

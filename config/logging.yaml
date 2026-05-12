@@ -1,0 +1,101 @@
+# Logging configuration for Intelligent Strategy Trading Platform
+# This file defines logging levels, formatters, and handlers
+
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  default:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  detailed:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(module)s:%(lineno)d - %(funcName)s - %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  
+  json:
+    format: '{"timestamp": "%(asctime)s", "logger": "%(name)s", "level": "%(levelname)s", "module": "%(module)s", "line": %(lineno)d, "function": "%(funcName)s", "message": "%(message)s"}'
+    datefmt: '%Y-%m-%dT%H:%M:%S'
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: default
+    stream: ext://sys.stdout
+  
+  file_default:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/app.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+    encoding: utf8
+  
+  file_error:
+    class: logging.handlers.RotatingFileHandler
+    level: ERROR
+    formatter: detailed
+    filename: logs/error.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+    encoding: utf8
+  
+  file_trading:
+    class: logging.handlers.RotatingFileHandler
+    level: INFO
+    formatter: json
+    filename: logs/trading.log
+    maxBytes: 52428800  # 50MB
+    backupCount: 10
+    encoding: utf8
+  
+  file_indicators:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: detailed
+    filename: logs/indicators.log
+    maxBytes: 10485760  # 10MB
+    backupCount: 5
+    encoding: utf8
+
+loggers:
+  ist:
+    level: DEBUG
+    handlers: [console, file_default, file_error]
+    propagate: false
+  
+  ist.trading:
+    level: INFO
+    handlers: [file_trading, console]
+    propagate: false
+  
+  ist.indicators:
+    level: DEBUG
+    handlers: [file_indicators, console]
+    propagate: false
+  
+  ist.api:
+    level: INFO
+    handlers: [console, file_default]
+    propagate: false
+  
+  ist.database:
+    level: WARNING
+    handlers: [file_default]
+    propagate: false
+  
+  uvicorn:
+    level: INFO
+    handlers: [console, file_default]
+    propagate: false
+  
+  sqlalchemy:
+    level: WARNING
+    handlers: [file_default]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console, file_default, file_error]
