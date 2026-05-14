@@ -1,0 +1,78 @@
+{
+  "profile_name": "Risk Parity Portfolio",
+  "target_annual_return": "6% - 10%",
+  "max_drawdown_limit": "5%",
+  "asset_allocation": {
+    "forex_majors": 0.20,
+    "gold_commodities": 0.25,
+    "index_cfds": 0.25,
+    "crypto_bluechips": 0.05
+  },
+  "rebalancing": {
+    "enabled": true,
+    "threshold_pct": 2.0,
+    "frequency": "daily"
+  },
+  "risk_management": {
+    "path_simulation_runs": 10000,
+    "confidence_level": 0.95,
+    "stress_test_scenarios": ["2008_financial_crisis", "covid_crash", "usd_surge_2015"],
+    "dynamic_position_sizing": true,
+    "max_position_size_pct": 0.10,
+    "volatility_target": 0.06,
+    "risk_parity_method": "equal_risk_contribution",
+    "volatility_window": 60,
+    "correlation_window": 120,
+    "max_leverage": 1.5
+  },
+  "strategy_nodes": {
+    "version": "1.0",
+    "description": "Equal risk contribution portfolio with dynamic leverage adjustment",
+    "nodes": [
+      {
+        "id": "data_all",
+        "type": "DataSourceNode",
+        "params": {"symbols": ["EURUSD", "XAUUSD", "SPX500", "US10Y", "BTCUSD"], "timeframe": "1d"},
+        "position": {"x": 50, "y": 100}
+      },
+      {
+        "id": "volatility",
+        "type": "IndicatorNode",
+        "params": {"indicator": "ATR", "period": 60, "source": "close"},
+        "position": {"x": 280, "y": 50}
+      },
+      {
+        "id": "correlation",
+        "type": "IndicatorNode",
+        "params": {"indicator": "Momentum", "period": 120, "source": "close", "correlation_mode": true},
+        "position": {"x": 280, "y": 150}
+      },
+      {
+        "id": "erc_weights",
+        "type": "ConditionNode",
+        "params": {"condition": "equal_risk_contribution", "vol_source": "volatility", "corr_source": "correlation"},
+        "position": {"x": 500, "y": 100}
+      },
+      {
+        "id": "leverage_check",
+        "type": "RiskNode",
+        "params": {"method": "target_volatility", "target_vol": 0.06, "max_leverage": 1.5},
+        "position": {"x": 700, "y": 100}
+      },
+      {
+        "id": "rebalance",
+        "type": "ActionNode",
+        "params": {"action": "rebalance_portfolio", "method": "risk_parity_weights"},
+        "position": {"x": 900, "y": 100}
+      }
+    ],
+    "connections": [
+      {"from": "data_all", "to": "volatility"},
+      {"from": "data_all", "to": "correlation"},
+      {"from": "volatility", "to": "erc_weights"},
+      {"from": "correlation", "to": "erc_weights"},
+      {"from": "erc_weights", "to": "leverage_check"},
+      {"from": "leverage_check", "to": "rebalance"}
+    ]
+  }
+}

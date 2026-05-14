@@ -10,6 +10,15 @@ from ist.strategy.nodes.base import (
 )
 from ist.strategy.graph import StrategyGraph, NodeConnection
 from ist.strategy.executor import StrategyExecutor, ExecutionResult
+from ist.strategy.serializer import (
+    serialize_graph,
+    deserialize_graph,
+    validate_strategy_config,
+    graph_from_json,
+    graph_to_json,
+    migrate_config,
+    get_latest_version,
+)
 from ist.strategy.optimization import (
     ParameterOptimizer,
     GeneticOptimizer,
@@ -27,6 +36,14 @@ __all__ = [
     "NodeConnection",
     "StrategyExecutor",
     "ExecutionResult",
+    # Serialization
+    "serialize_graph",
+    "deserialize_graph",
+    "validate_strategy_config",
+    "graph_from_json",
+    "graph_to_json",
+    "migrate_config",
+    "get_latest_version",
     # Optimization
     "ParameterOptimizer",
     "GeneticOptimizer",

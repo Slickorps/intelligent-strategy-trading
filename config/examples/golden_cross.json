@@ -1,0 +1,144 @@
+{
+  "profile_name": "Golden Cross Strategy",
+  "target_annual_return": "10% - 16%",
+  "max_drawdown_limit": "7%",
+  "asset_allocation": {
+    "forex_majors": 0.30,
+    "gold_commodities": 0.20,
+    "index_cfds": 0.40,
+    "crypto_bluechips": 0.10
+  },
+  "rebalancing": {
+    "enabled": false,
+    "threshold_pct": 5.0,
+    "frequency": "monthly"
+  },
+  "risk_management": {
+    "path_simulation_runs": 10000,
+    "confidence_level": 0.95,
+    "stress_test_scenarios": ["2008_financial_crisis", "covid_crash", "tech_bubble_2000"],
+    "dynamic_position_sizing": true,
+    "max_position_size_pct": 0.18,
+    "volatility_target": 0.10,
+    "golden_cross_periods": {"fast": 50, "slow": 200},
+    "use_trailing_stop": true,
+    "trailing_stop_atr_multiple": 1.5
+  },
+  "strategy_nodes": {
+    "version": "1.0",
+    "description": "Classic golden cross (50/200 SMA) with MACD confirmation and trailing stop",
+    "nodes": [
+      {
+        "id": "data_spx",
+        "type": "DataSourceNode",
+        "params": {"symbol": "SPX500", "timeframe": "1d"},
+        "position": {"x": 50, "y": 100}
+      },
+      {
+        "id": "data_btc",
+        "type": "DataSourceNode",
+        "params": {"symbol": "BTCUSD", "timeframe": "1d"},
+        "position": {"x": 50, "y": 200}
+      },
+      {
+        "id": "sma_50_spx",
+        "type": "IndicatorNode",
+        "params": {"indicator": "SMA", "period": 50, "source": "close"},
+        "position": {"x": 280, "y": 50}
+      },
+      {
+        "id": "sma_200_spx",
+        "type": "IndicatorNode",
+        "params": {"indicator": "SMA", "period": 200, "source": "close"},
+        "position": {"x": 280, "y": 130}
+      },
+      {
+        "id": "macd_spx",
+        "type": "IndicatorNode",
+        "params": {"indicator": "MACD", "fast_period": 12, "slow_period": 26, "signal_period": 9},
+        "position": {"x": 280, "y": 210}
+      },
+      {
+        "id": "sma_50_btc",
+        "type": "IndicatorNode",
+        "params": {"indicator": "SMA", "period": 50, "source": "close"},
+        "position": {"x": 280, "y": 290}
+      },
+      {
+        "id": "sma_200_btc",
+        "type": "IndicatorNode",
+        "params": {"indicator": "SMA", "period": 200, "source": "close"},
+        "position": {"x": 280, "y": 370}
+      },
+      {
+        "id": "golden_cross_spx",
+        "type": "ConditionNode",
+        "params": {"condition": "cross_above", "input_a": "sma_50_spx", "input_b": "sma_200_spx"},
+        "position": {"x": 500, "y": 80}
+      },
+      {
+        "id": "death_cross_spx",
+        "type": "ConditionNode",
+        "params": {"condition": "cross_below", "input_a": "sma_50_spx", "input_b": "sma_200_spx"},
+        "position": {"x": 500, "y": 180}
+      },
+      {
+        "id": "macd_bullish",
+        "type": "ConditionNode",
+        "params": {"condition": "greater_than", "input_a": "macd_line", "input_b": "signal_line"},
+        "position": {"x": 500, "y": 280}
+      },
+      {
+        "id": "golden_cross_btc",
+        "type": "ConditionNode",
+        "params": {"condition": "cross_above", "input_a": "sma_50_btc", "input_b": "sma_200_btc"},
+        "position": {"x": 500, "y": 380}
+      },
+      {
+        "id": "risk_trailing",
+        "type": "RiskNode",
+        "params": {"method": "trailing_stop", "atr_multiple": 1.5, "atr_period": 14},
+        "position": {"x": 700, "y": 200}
+      },
+      {
+        "id": "buy_spx",
+        "type": "ActionNode",
+        "params": {"action": "buy", "symbol": "SPX500", "size_pct": 0.15},
+        "position": {"x": 900, "y": 80}
+      },
+      {
+        "id": "sell_spx",
+        "type": "ActionNode",
+        "params": {"action": "sell", "symbol": "SPX500", "size_pct": 0.15},
+        "position": {"x": 900, "y": 180}
+      },
+      {
+        "id": "buy_btc",
+        "type": "ActionNode",
+        "params": {"action": "buy", "symbol": "BTCUSD", "size_pct": 0.08},
+        "position": {"x": 900, "y": 380}
+      }
+    ],
+    "connections": [
+      {"from": "data_spx", "to": "sma_50_spx"},
+      {"from": "data_spx", "to": "sma_200_spx"},
+      {"from": "data_spx", "to": "macd_spx"},
+      {"from": "data_btc", "to": "sma_50_btc"},
+      {"from": "data_btc", "to": "sma_200_btc"},
+      {"from": "sma_50_spx", "to": "golden_cross_spx"},
+      {"from": "sma_200_spx", "to": "golden_cross_spx"},
+      {"from": "sma_50_spx", "to": "death_cross_spx"},
+      {"from": "sma_200_spx", "to": "death_cross_spx"},
+      {"from": "macd_spx", "to": "macd_bullish"},
+      {"from": "sma_50_btc", "to": "golden_cross_btc"},
+      {"from": "sma_200_btc", "to": "golden_cross_btc"},
+      {"from": "golden_cross_spx", "to": "risk_trailing"},
+      {"from": "macd_bullish", "to": "risk_trailing"},
+      {"from": "death_cross_spx", "to": "risk_trailing"},
+      {"from": "golden_cross_btc", "to": "risk_trailing"},
+      {"from": "risk_trailing", "to": "buy_spx"},
+      {"from": "risk_trailing", "to": "sell_spx"},
+      {"from": "risk_trailing", "to": "buy_btc"}
+    ]
+  }
+}
