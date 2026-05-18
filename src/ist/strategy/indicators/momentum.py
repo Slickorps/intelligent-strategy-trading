@@ -17,6 +17,164 @@ from ist.core.logging import get_logger
 logger = get_logger(__name__)
 
 
+class Momentum(BaseIndicator):
+    """Momentum Indicator.
+    
+    Momentum measures the absolute change in price over a specified number
+    of periods. It helps identify the speed and strength of price movements.
+    
+    Formula:
+        Raw Momentum = Price(t) - Price(t - period)
+        ROC (%) = ((Price(t) / Price(t - period)) - 1) * 100
+    
+    Args:
+        period: Number of periods for calculation (default: 10)
+        use_percentage: Return percentage change instead of raw (default: True)
+        
+    Example:
+        ```python
+        mom = Momentum(period=10)
+        data = IndicatorInput(close=price_series)
+        result = mom.calculate(data)
+        print(result.values)  # Momentum values (ROC %)
+        print(result.signals)  # Trading signals
+        ```
+    """
+    
+    def __init__(self, period: int = 10, use_percentage: bool = True) -> None:
+        """Initialize Momentum indicator.
+        
+        Args:
+            period: Number of periods for calculation (must be >= 2)
+            use_percentage: Return percentage change if True, raw difference if False
+        """
+        if period < 2:
+            raise IndicatorError("Momentum period must be >= 2")
+        
+        super().__init__("Momentum", {
+            "period": period,
+            "use_percentage": use_percentage
+        })
+        self.period = period
+        self.use_percentage = use_percentage
+    
+    def calculate(self, data: IndicatorInput) -> IndicatorResult:
+        """Calculate Momentum values.
+        
+        Args:
+            data: IndicatorInput containing price data
+            
+        Returns:
+            IndicatorResult with momentum values
+            
+        Raises:
+            IndicatorError: If calculation fails
+        """
+        try:
+            price_series = data.main_series
+            
+            if not self.validate_input(data):
+                raise IndicatorError(
+                    f"Insufficient data for Momentum calculation. "
+                    f"Need at least {self.period} periods"
+                )
+            
+            if self.use_percentage:
+                # Rate of Change (ROC) as percentage
+                momentum_values = ((price_series / price_series.shift(self.period)) - 1) * 100
+                metadata_method = "roc_percentage"
+            else:
+                # Raw momentum (absolute difference)
+                momentum_values = price_series - price_series.shift(self.period)
+                metadata_method = "raw_difference"
+            
+            # Generate signals based on momentum direction
+            signals = self._generate_signals(momentum_values)
+            
+            logger.debug(
+                f"Calculated Momentum({self.period}) for {len(price_series)} data points"
+            )
+            
+            return IndicatorResult(
+                values=momentum_values,
+                signals=signals,
+                metadata={
+                    "period": self.period,
+                    "use_percentage": self.use_percentage,
+                    "method": metadata_method
+                }
+            )
+            
+        except Exception as e:
+            raise IndicatorError(f"Momentum calculation failed: {str(e)}")
+    
+    def validate_input(self, data: IndicatorInput) -> bool:
+        """Validate input data for Momentum calculation.
+        
+        Args:
+            data: IndicatorInput to validate
+            
+        Returns:
+            True if valid, False otherwise
+        """
+        try:
+            price_series = data.main_series
+            return len(price_series) >= self.period and not price_series.empty
+        except Exception:
+            return False
+    
+    def get_min_bars_required(self) -> int:
+        """Get minimum bars required for Momentum calculation."""
+        return self.period
+    
+    def _generate_signals(self, momentum_values: pd.Series) -> pd.Series:
+        """Generate trading signals based on momentum direction.
+        
+        Signals:
+            - Buy (1): Momentum crosses above zero (turning positive)
+            - Sell (-1): Momentum crosses below zero (turning negative)
+            - Hold (0): Otherwise
+        
+        Args:
+            momentum_values: Momentum indicator values
+            
+        Returns:
+            Series with trading signals (1=buy, -1=sell, 0=hold)
+        """
+        signals = pd.Series(0, index=momentum_values.index)
+        
+        # Positive momentum: values > 0
+        momentum_positive = momentum_values > 0
+        momentum_negative = momentum_values < 0
+        
+        # Buy signal: momentum crosses above zero
+        buy_signals = momentum_positive & momentum_negative.shift(1).fillna(False).infer_objects(copy=False)
+        
+        # Sell signal: momentum crosses below zero
+        sell_signals = momentum_negative & momentum_positive.shift(1).fillna(False).infer_objects(copy=False)
+        
+        signals[buy_signals] = 1
+        signals[sell_signals] = -1
+        
+        return signals
+    
+    def get_signal_description(self, signal: int) -> str:
+        """Get human-readable description of a Momentum signal.
+        
+        Args:
+            signal: Signal value (1, -1, or 0)
+            
+        Returns:
+            Description string
+        """
+        descriptions = {
+            1: f"Buy signal - Momentum turning positive (price accelerating upward)",
+            -1: f"Sell signal - Momentum turning negative (price decelerating)",
+            0: f"Hold - No momentum direction change"
+        }
+        return descriptions.get(signal, "Unknown signal")
+
+
 class RSI(BaseIndicator):
     """Relative Strength Index (RSI).
     

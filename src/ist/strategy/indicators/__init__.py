@@ -30,7 +30,7 @@ from ist.strategy.indicators.base import (
     IndicatorResult,
 )
 from ist.strategy.indicators.moving_averages import SMA, EMA
-from ist.strategy.indicators.momentum import RSI
+from ist.strategy.indicators.momentum import RSI, Momentum
 from ist.strategy.indicators.trend import MACD
 from ist.strategy.indicators.volatility import ATR, BollingerBands
 from ist.strategy.indicators.cache import (
@@ -53,6 +53,7 @@ __all__ = [
     "SMA",
     "EMA",
     # Momentum
+    "Momentum",
     "RSI",
     # Trend
     "MACD",
