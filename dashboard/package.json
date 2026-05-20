@@ -1,0 +1,17 @@
+{
+  "name": "ist-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Intelligent Strategy Trading - Real-time monitoring dashboard",
+  "scripts": {
+    "build": "tsc --build",
+    "watch": "tsc --watch",
+    "clean": "rimraf dist",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.5.0"
+  }
+}

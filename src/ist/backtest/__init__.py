@@ -11,6 +11,7 @@ from ist.backtest.analytics import (
     PerformanceAnalyzer,
     PerformanceMetrics,
 )
+from ist.backtest.report import BacktestReporter
 
 __all__ = [
     "BacktestEngine",
@@ -21,4 +22,5 @@ __all__ = [
     "Position",
     "PerformanceAnalyzer",
     "PerformanceMetrics",
+    "BacktestReporter",
 ]

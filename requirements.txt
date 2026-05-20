@@ -21,6 +21,12 @@ python-dateutil>=2.8.0
 httpx>=0.24.0
 typer>=0.9.0
 
+# Reporting & Export (optional)
+fpdf2>=2.7.0
+openpyxl>=3.1.0
+# weasyprint>=60.0  # Uncomment for PDF generation via HTML/CSS
+# mplfinance>=0.12.0  # Uncomment for chart export
+
 # Development (optional)
 pytest>=8.0.0
 pytest-asyncio>=0.24.0

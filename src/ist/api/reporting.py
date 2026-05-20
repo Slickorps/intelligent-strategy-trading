@@ -1,12 +1,14 @@
 """Reporting and export functionality.
 
 Generates PDF reports, Excel exports, and webhook notifications.
+Delegates core report generation to src/ist/backtest/report.py.
 """
 
 import json
 from datetime import datetime
 from typing import Any, Optional
 
+from ist.backtest.report import BacktestReporter
 from ist.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -14,6 +16,8 @@ logger = get_logger(__name__)
 
 class ReportGenerator:
     """Generate various report formats.
+    
+    Delegates core report generation to BacktestReporter.
     
     Usage:
         generator = ReportGenerator()
@@ -32,11 +36,7 @@ class ReportGenerator:
     """
     
     def __init__(self) -> None:
-        self.templates = {
-            "backtest": self._backtest_template,
-            "portfolio": self._portfolio_template,
-            "risk": self._risk_template
-        }
+        self._reporter = BacktestReporter()
     
     def generate_html_report(
         self,
@@ -54,9 +54,25 @@ class ReportGenerator:
         Returns:
             HTML string
         """
-        template = self.templates.get(report_type, self._backtest_template)
-        
-        return template(data, title)
+        if report_type == "backtest":
+            metrics = data.get("metrics", {})
+            trades = data.get("trades", [])
+            equity_curve = data.get("equity_curve", [])
+            return self._reporter.generate_html_report(
+                metrics=metrics,
+                trades=trades,
+                equity_curve=equity_curve,
+                title=title,
+            )
+        elif report_type == "portfolio":
+            return self._reporter.generate_portfolio_report(data, title)
+        elif report_type == "risk":
+            return self._reporter.generate_risk_report(data, title)
+        else:
+            return self._reporter.generate_html_report(
+                metrics=data.get("metrics", {}),
+                title=title,
+            )
     
     def export_to_json(
         self,
@@ -64,260 +80,52 @@ class ReportGenerator:
         indent: int = 2
     ) -> str:
         """Export data to JSON string."""
-        return json.dumps(data, indent=indent, default=str)
+        return self._reporter.export_to_json(data, indent)
     
     def export_trades_to_csv(self, trades: list[dict]) -> str:
         """Export trades to CSV format."""
-        if not trades:
-            return ""
-        
-        # Get headers from first trade
-        headers = list(trades[0].keys())
-        
-        # Build CSV
-        lines = [",".join(headers)]
-        
-        for trade in trades:
-            row = []
-            for key in headers:
-                value = trade.get(key, "")
-                # Escape commas and quotes
-                if isinstance(value, str) and ("," in value or '"' in value):
-                    value = '"' + value.replace('"', '""') + '"'
-                row.append(str(value))
-            lines.append(",".join(row))
-        
-        return "\n".join(lines)
+        return self._reporter.export_trades_to_csv(trades)
     
     def export_equity_curve_to_csv(
         self,
         equity_curve: list[dict]
     ) -> str:
         """Export equity curve to CSV."""
-        if not equity_curve:
-            return ""
-        
-        headers = ["date", "equity", "daily_return", "drawdown"]
-        lines = [",".join(headers)]
-        
-        peak = 0
-        for entry in equity_curve:
-            date = entry.get("date", "")
-            equity = entry.get("equity", 0)
-            
-            if equity > peak:
-                peak = equity
-            
-            drawdown = (peak - equity) / peak if peak > 0 else 0
-            
-            lines.append(f"{date},{equity},,{drawdown:.4f}")
-        
-        return "\n".join(lines)
+        return self._reporter.export_equity_curve_to_csv(equity_curve)
     
-    def _backtest_template(
+    def generate_pdf_report(
         self,
         data: dict[str, Any],
-        title: str
-    ) -> str:
-        """Generate HTML backtest report."""
-        metrics = data.get("metrics", {})
+        output_path: str,
+        title: str = "Trading Report",
+    ) -> Optional[str]:
+        """Generate PDF report.
         
-        html = f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>{title}</title>
-    <style>
-        body {{
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background: #f5f5f5;
-        }}
-        .container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }}
-        h1 {{
-            color: #333;
-            border-bottom: 3px solid #4a90d9;
-            padding-bottom: 10px;
-        }}
-        h2 {{
-            color: #555;
-            margin-top: 30px;
-        }}
-        .metrics-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }}
-        .metric-card {{
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #4a90d9;
-        }}
-        .metric-label {{
-            font-size: 12px;
-            color: #666;
-            text-transform: uppercase;
-        }}
-        .metric-value {{
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            margin-top: 5px;
-        }}
-        .positive {{
-            color: #27ae60;
-        }}
-        .negative {{
-            color: #e74c3c;
-        }}
-        table {{
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }}
-        th, td {{
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }}
-        th {{
-            background: #4a90d9;
-            color: white;
-        }}
-        .footer {{
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #ddd;
-            color: #666;
-            font-size: 12px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{title}</h1>
-        <p>Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}</p>
-        
-        <h2>Performance Summary</h2>
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-label">Total Return</div>
-                <div class="metric-value {'positive' if metrics.get('total_return', 0) > 0 else 'negative'}">
-                    {metrics.get('total_return', 0):.2%}
-                </div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Sharpe Ratio</div>
-                <div class="metric-value">{metrics.get('sharpe_ratio', 0):.2f}</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Max Drawdown</div>
-                <div class="metric-value negative">
-                    {metrics.get('max_drawdown', 0):.2%}
-                </div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-label">Win Rate</div>
-                <div class="metric-value">{metrics.get('win_rate', 0):.1%}</div>
-            </div>
-        </div>
-        
-        <h2>Trade Statistics</h2>
-        <table>
-            <tr>
-                <th>Metric</th>
-                <th>Value</th>
-            </tr>
-            <tr>
-                <td>Total Trades</td>
-                <td>{metrics.get('total_trades', 0)}</td>
-            </tr>
-            <tr>
-                <td>Winning Trades</td>
-                <td>{metrics.get('winning_trades', 0)}</td>
-            </tr>
-            <tr>
-                <td>Losing Trades</td>
-                <td>{metrics.get('losing_trades', 0)}</td>
-            </tr>
-            <tr>
-                <td>Profit Factor</td>
-                <td>{metrics.get('profit_factor', 0):.2f}</td>
-            </tr>
-        </table>
-        
-        <div class="footer">
-            Generated by Intelligent Strategy Trading Platform
-        </div>
-    </div>
-</body>
-</html>"""
-        
-        return html
+        Args:
+            data: Report data dictionary
+            output_path: Path to save PDF file
+            title: Report title
+            
+        Returns:
+            Path to generated PDF, or None if generation failed
+        """
+        return self._reporter.generate_pdf_report(data, output_path, title)
     
-    def _portfolio_template(
+    def export_to_excel(
         self,
         data: dict[str, Any],
-        title: str
-    ) -> str:
-        """Generate HTML portfolio report."""
-        return f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>{title}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
-        h1 {{ color: #333; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{title}</h1>
-        <p>Portfolio Value: ${data.get('equity', 0):,.2f}</p>
-    </div>
-</body>
-</html>"""
-    
-    def _risk_template(
-        self,
-        data: dict[str, Any],
-        title: str
-    ) -> str:
-        """Generate HTML risk report."""
-        return f"""<!DOCTYPE html>
-<html>
-<head>
-    <title>{title}</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
-        h1 {{ color: #333; }}
-        .risk-metric {{ 
-            background: #f8f9fa; 
-            padding: 15px; 
-            margin: 10px 0;
-            border-radius: 4px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>{title}</h1>
-        <div class="risk-metric">
-            <h3>Value at Risk (95%)</h3>
-            <p>{data.get('var_95', 0):.2%}</p>
-        </div>
-    </div>
-</body>
-</html>"""
+        output_path: str,
+    ) -> Optional[str]:
+        """Export data to Excel file.
+        
+        Args:
+            data: Report data dictionary
+            output_path: Path to save Excel file
+            
+        Returns:
+            Path to generated Excel file, or None if generation failed
+        """
+        return self._reporter.export_to_excel(data, output_path)
 
 
 class WebhookNotifier:
