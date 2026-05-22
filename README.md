@@ -2,6 +2,12 @@
 
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)
+![Go](https://img.shields.io/badge/go-1.21+-00ADD8.svg)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)
+![HTML](https://img.shields.io/badge/HTML-5-E34F26.svg)
+![CSS](https://img.shields.io/badge/CSS-3-1572B6.svg)
+![Shell](https://img.shields.io/badge/Shell-Bash-4EAA25.svg)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
