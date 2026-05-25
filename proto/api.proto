@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package ist.api;
+
+// ---------------------------------------------------------------------------
+// IST Trading API — gRPC Service Definitions
+//
+// These RPCs expose strategy execution, backtesting, and position management
+// in a language-agnostic way. Clients can be generated for Python, Go, Rust,
+// TypeScript, and more.
+// ---------------------------------------------------------------------------
+
+import "market_data.proto";
+
+// ---------------------------------------------------------------------------
+// Common Types
+
+// Pagination
+message Pagination {
+    int32 page      = 1;
+    int32 page_size = 2;
+}
+
+// Strategy identifier.
+message StrategyId {
+    string id = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Strategy Management
+
+// StrategyListRequest
+message StrategyListRequest {
+    Pagination pagination = 1;
+}
+
+// StrategySummary
+message StrategySummary {
+    string id          = 1;
+    string name        = 2;
+    string status      = 3;  // draft / running / paused / stopped
+    string created_at  = 4;
+    string updated_at  = 5;
+}
+
+// StrategyListResponse
+message StrategyListResponse {
+    repeated StrategySummary strategies = 1;
+    int32 total                        = 2;
+}
+
+// StrategyDetailRequest
+message StrategyDetailRequest {
+    string strategy_id = 1;
+}
+
+// StrategyDetailResponse
+message StrategyDetailResponse {
+    string id              = 1;
+    string name            = 2;
+    string description     = 3;
+    string status          = 4;
+    bytes  config_json     = 5;  // Full strategy graph as JSON
+    string created_at      = 6;
+    string updated_at      = 7;
+}
+
+// ---------------------------------------------------------------------------
+// Backtesting
+
+// BacktestRunRequest
+message BacktestRunRequest {
+    string strategy_id = 1;
+    string start_date  = 2;  // ISO 8601
+    string end_date    = 3;
+    bytes  params_json = 4;  // Optional override parameters
+}
+
+// BacktestRunResponse
+message BacktestRunResponse {
+    string backtest_id = 1;
+    string status      = 2;  // queued / running / completed / failed
+}
+
+// BacktestResultRequest
+message BacktestResultRequest {
+    string backtest_id = 1;
+}
+
+// BacktestResultResponse
+message BacktestResultResponse {
+    string backtest_id       = 1;
+    string status            = 2;
+    double total_return      = 3;
+    double annualized_return = 4;
+    double sharpe_ratio      = 5;
+    double sortino_ratio     = 6;
+    double max_drawdown      = 7;
+    double calmar_ratio      = 8;
+    double win_rate          = 9;
+    double profit_factor     = 10;
+    int32  total_trades      = 11;
+    string error_message     = 12;
+}
+
+// ---------------------------------------------------------------------------
+// Market Data
+
+// MarketDataRequest
+message MarketDataRequest {
+    string symbol    = 1;
+    string timeframe = 2;  // "1m", "5m", "1h", "1d"
+    string start     = 3;
+    string end       = 4;
+    int32  limit     = 5;  // Max bars to return
+}
+
+// MarketDataResponse
+message MarketDataResponse {
+    string symbol                  = 1;
+    string timeframe               = 2;
+    repeated ist.market_data.OHLCVBar bars = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Position & Portfolio
+
+// Position
+message Position {
+    string symbol    = 1;
+    double size      = 2;
+    double entry     = 3;
+    double current   = 4;
+    double pnl       = 5;
+    double pnl_pct   = 6;
+}
+
+// PortfolioRequest (empty)
+message PortfolioRequest {}
+
+// PortfolioResponse
+message PortfolioResponse {
+    double cash                 = 1;
+    double equity               = 2;
+    double total_pnl            = 3;
+    double total_pnl_pct        = 4;
+    repeated Position positions = 5;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+
+service ISTTrading {
+    // Strategy
+    rpc ListStrategies  (StrategyListRequest)   returns (StrategyListResponse);
+    rpc GetStrategy     (StrategyDetailRequest)  returns (StrategyDetailResponse);
+
+    // Backtest
+    rpc RunBacktest     (BacktestRunRequest)    returns (BacktestRunResponse);
+    rpc GetBacktestResult (BacktestResultRequest) returns (BacktestResultResponse);
+
+    // Market Data
+    rpc GetMarketData   (MarketDataRequest)     returns (MarketDataResponse);
+
+    // Portfolio
+    rpc GetPortfolio    (PortfolioRequest)      returns (PortfolioResponse);
+}

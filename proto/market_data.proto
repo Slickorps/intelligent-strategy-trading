@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package ist.market_data;
+
+// ---------------------------------------------------------------------------
+// Market Data Protocol Buffers — Intelligent Strategy Trading Platform
+//
+// These schemas define the canonical wire format for OHLCV market data,
+// order book snapshots, and real-time tick streams.
+// Compatible with gRPC, Kafka, and file-based storage.
+// ---------------------------------------------------------------------------
+
+// OHLCV Bar represents a single candlestick / bar of aggregated price data.
+message OHLCVBar {
+    string   symbol   = 1;  // e.g. "EURUSD", "XAUUSD", "BTCUSD"
+    AssetClass asset = 2;
+    int64    timestamp = 3;  // Unix milliseconds
+    double   open      = 4;
+    double   high      = 5;
+    double   low       = 6;
+    double   close     = 7;
+    double   volume    = 8;
+    string   timeframe = 9;  // e.g. "1m", "5m", "1h", "1d"
+}
+
+// AssetClass enumeration.
+enum AssetClass {
+    ASSET_CLASS_UNSPECIFIED = 0;
+    FOREX        = 1;
+    INDEX_CFD    = 2;
+    COMMODITY    = 3;
+    CRYPTO       = 4;
+}
+
+// Tick represents a single trade or quote tick.
+message Tick {
+    string symbol    = 1;
+    int64  timestamp = 2;  // Unix milliseconds
+    double bid       = 3;
+    double ask       = 4;
+    double bid_size  = 5;
+    double ask_size  = 6;
+    double last      = 7;
+    double last_size = 8;
+}
+
+// OrderBookLevel represents one price level in the order book.
+message OrderBookLevel {
+    double price = 1;
+    double size  = 2;
+    int32  count = 3;  // Number of orders at this level
+}
+
+// OrderBookSnapshot is a point-in-time snapshot of the full order book.
+message OrderBookSnapshot {
+    string symbol               = 1;
+    int64  timestamp            = 2;
+    repeated OrderBookLevel bids = 3;  // Sorted: highest price first
+    repeated OrderBookLevel asks = 4;  // Sorted: lowest  price first
+}
+
+// MarketDataBatch batches multiple bars/ticks for efficient transmission.
+message MarketDataBatch {
+    string source              = 1;
+    int64  created_at          = 2;
+    repeated OHLCVBar bars     = 3;
+    repeated Tick ticks        = 4;
+    OrderBookSnapshot book     = 5;
+}
