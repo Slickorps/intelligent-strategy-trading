@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ist-trading
+  labels:
+    app: intelligent-strategy-trading
+    environment: production
+    managed-by: terraform

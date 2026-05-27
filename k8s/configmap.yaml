@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ist-trading-config
+  namespace: ist-trading
+  labels:
+    app: intelligent-strategy-trading
+data:
+  DATABASE_HOST: "postgres.ist-trading.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "ist_trading"
+  REDIS_HOST: "redis.ist-trading.svc.cluster.local"
+  REDIS_PORT: "6379"
+  LOG_LEVEL: "INFO"
+  TRADING_MODE: "paper"
+  API_HOST: "0.0.0.0"
+  API_PORT: "8000"
+  MONITOR_HOST: "0.0.0.0"
+  MONITOR_PORT: "8080"
+  DASHBOARD_HOST: "0.0.0.0"
+  DASHBOARD_PORT: "3000"
+
+  # Trading configuration
+  trading.yaml: |
+    exchange:
+      name: "simulated"
+      fee_rate: 0.0006
+      slippage_model: "fixed"
+      fixed_slippage_pips: 1.0
+    risk:
+      max_position_size_pct: 0.25
+      max_leverage: 1.0
+      daily_loss_limit_pct: 5.0
+      circuit_breaker_enabled: true
+      circuit_breaker_threshold: 3
+
+  database.yaml: |
+    pool_size: 10
+    max_overflow: 20
+    pool_pre_ping: true
+    pool_recycle: 3600
+    echo: false
+
+  logging.yaml: |
+    version: 1
+    formatters:
+      standard:
+        format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: standard
+        level: INFO
+      file:
+        class: logging.handlers.RotatingFileHandler
+        formatter: standard
+        filename: /var/log/ist/trading.log
+        maxBytes: 10485760
+        backupCount: 5
+    root:
+      level: INFO
+      handlers: [console, file]

@@ -1,0 +1,186 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ist-trading-api
+  namespace: ist-trading
+  labels:
+    app: intelligent-strategy-trading
+    component: api
+    tier: backend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: intelligent-strategy-trading
+      component: api
+  template:
+    metadata:
+      labels:
+        app: intelligent-strategy-trading
+        component: api
+        tier: backend
+    spec:
+      containers:
+        - name: api
+          image: ist-trading-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              name: http-api
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: ist-trading-config
+          env:
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ist-trading-secret
+                  key: database_password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ist-trading-secret
+                  key: redis_password
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+            - name: data-volume
+              mountPath: /app/data
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http-api
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http-api
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http-api
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ist-monitor
+  namespace: ist-trading
+  labels:
+    app: intelligent-strategy-trading
+    component: monitor
+    tier: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: intelligent-strategy-trading
+      component: monitor
+  template:
+    metadata:
+      labels:
+        app: intelligent-strategy-trading
+        component: monitor
+        tier: monitoring
+    spec:
+      containers:
+        - name: monitor
+          image: ist-monitor:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http-monitor
+              protocol: TCP
+          env:
+            - name: API_TARGET
+              value: "http://ist-trading-api:8000"
+            - name: MONITOR_PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http-monitor
+            initialDelaySeconds: 15
+            periodSeconds: 20
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ist-dashboard
+  namespace: ist-trading
+  labels:
+    app: intelligent-strategy-trading
+    component: dashboard
+    tier: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: intelligent-strategy-trading
+      component: dashboard
+  template:
+    metadata:
+      labels:
+        app: intelligent-strategy-trading
+        component: dashboard
+        tier: frontend
+    spec:
+      containers:
+        - name: dashboard
+          image: ist-dashboard:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http-dash
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http-dash
+            initialDelaySeconds: 10
+            periodSeconds: 30
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ist-trading-sa
+  namespace: ist-trading
+  labels:
+    app: intelligent-strategy-trading
