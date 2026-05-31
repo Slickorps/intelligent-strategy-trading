@@ -15,6 +15,16 @@ from ist.risk.factors import (
     MultiFactorModel,
     FactorResult,
 )
+from ist.risk.ml_factors import (
+    MLFactor,
+    MLFactorConfig,
+    MLFactorRegistry,
+    PredictionResult,
+    TrainingResult,
+    WalkForwardOptimizer,
+    WalkForwardSplit,
+    registry,
+)
 from ist.risk.simulation import (
     PathSimulator,
     PortfolioSimulator,
@@ -41,6 +51,15 @@ __all__ = [
     "TrendFactor",
     "MultiFactorModel",
     "FactorResult",
+    # ML Factors
+    "MLFactor",
+    "MLFactorConfig",
+    "MLFactorRegistry",
+    "PredictionResult",
+    "TrainingResult",
+    "WalkForwardOptimizer",
+    "WalkForwardSplit",
+    "registry",
     # Simulation
     "PathSimulator",
     "PortfolioSimulator",

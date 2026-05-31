@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ist.core.config import get_settings
 from ist.core.events import EventBus
 from ist.core.logging import configure_logging, get_logger
-from ist.api.routers import health, strategies, backtest, portfolio, risk
+from ist.api.routers import health, strategies, backtest, portfolio, risk, ml_factors
 
 logger = get_logger(__name__)
 
@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(backtest.router, prefix="/backtest", tags=["Backtest"])
     app.include_router(portfolio.router, prefix="/portfolio", tags=["Portfolio"])
     app.include_router(risk.router, prefix="/risk", tags=["Risk"])
+    app.include_router(ml_factors.router, prefix="/risk", tags=["ML Factors"])
     
     return app
 
