@@ -234,7 +234,11 @@ class MLFactor:
 
         model_class = self._load_model_class()
         params = dict(self.model_params)
-        params.setdefault("random_state", self.random_state)
+
+        # Only pass random_state to models that accept it
+        import inspect
+        if "random_state" in inspect.signature(model_class.__init__).parameters:
+            params.setdefault("random_state", self.random_state)
 
         estimator = model_class(**params)
         return Pipeline(
@@ -422,7 +426,8 @@ class MLFactor:
         path = Path(path)
         path.mkdir(parents=True, exist_ok=True)
 
-        model_path = path / f"{self.name}_{self._generate_model_id()}.joblib"
+        model_id = self._generate_model_id()
+        model_path = path / f"{model_id}.joblib"
         dump(self._pipeline, model_path)
 
         # Save metadata
@@ -435,7 +440,7 @@ class MLFactor:
             "training_result": self._training_result.to_dict() if self._training_result else None,
             "feature_importances": self._feature_importances,
         }
-        metadata_path = path / f"{self.name}_{self._generate_model_id()}.json"
+        metadata_path = path / f"{model_id}.json"
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
