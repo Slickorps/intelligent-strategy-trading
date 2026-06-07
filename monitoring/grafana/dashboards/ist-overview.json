@@ -1,0 +1,359 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 100,
+      "panels": [],
+      "title": "System Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 60},
+              {"color": "red", "value": 85}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 1},
+      "id": 1,
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "targets": [
+        {
+          "expr": "ist_system_cpu_usage_percent",
+          "legendFormat": "CPU",
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Usage",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "red", "value": 85}
+            ]
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 1},
+      "id": 2,
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "targets": [
+        {
+          "expr": "ist_system_memory_usage_percent",
+          "legendFormat": "Memory",
+          "refId": "A"
+        }
+      ],
+      "title": "Memory Usage",
+      "type": "gauge"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1000}
+            ]
+          }
+        }
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 1},
+      "id": 3,
+      "options": {
+        "reduceOptions": {"values": false, "calcs": ["lastNotNull"]},
+        "orientation": "auto",
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true,
+        "text": {}
+      },
+      "targets": [
+        {
+          "expr": "ist_system_thread_count",
+          "legendFormat": "Threads",
+          "refId": "A"
+        }
+      ],
+      "title": "Thread Count",
+      "type": "gauge"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+      "id": 101,
+      "panels": [],
+      "title": "API Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"unit": "reqps", "custom": {"fillOpacity": 30, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "id": 4,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "sum(rate(ist_api_requests_total[1m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Rate by Endpoint",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"unit": "s", "custom": {"fillOpacity": 20, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+      "id": 5,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ist_api_request_duration_seconds_bucket[2m])) by (le, endpoint))",
+          "legendFormat": "P95 {{endpoint}}",
+          "refId": "A"
+        }
+      ],
+      "title": "P95 Request Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"unit": "reqps", "custom": {"fillOpacity": 30, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+      "id": 6,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "sum(rate(ist_api_requests_total{status_code=~\"5..\"}[1m]))",
+          "legendFormat": "5xx Errors",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(ist_api_requests_total{status_code=~\"4..\"}[1m]))",
+          "legendFormat": "4xx Errors",
+          "refId": "B"
+        }
+      ],
+      "title": "Error Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"custom": {"fillOpacity": 20, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+      "id": 7,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "ist_api_requests_in_progress",
+          "legendFormat": "{{method}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Requests In Progress",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
+      "id": 102,
+      "panels": [],
+      "title": "Business & Risk Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"custom": {"fillOpacity": 30, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 27},
+      "id": 8,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "sum(rate(ist_orders_executed_total[1m])) by (strategy, result)",
+          "legendFormat": "{{strategy}} {{result}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Order Execution Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"unit": "s", "custom": {"fillOpacity": 20, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 27},
+      "id": 9,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ist_order_latency_seconds_bucket[2m])) by (le, strategy))",
+          "legendFormat": "P95 {{strategy}}",
+          "refId": "A"
+        }
+      ],
+      "title": "P95 Order Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"unit": "percentunit", "custom": {"fillOpacity": 30, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 27},
+      "id": 10,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "ist_risk_max_drawdown",
+          "legendFormat": "MaxDD {{portfolio_id}}",
+          "refId": "A"
+        },
+        {
+          "expr": "ist_risk_current_drawdown",
+          "legendFormat": "CurrentDD {{portfolio_id}}",
+          "refId": "B"
+        }
+      ],
+      "title": "Drawdown",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"unit": "percentunit", "custom": {"fillOpacity": 20, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 35},
+      "id": 11,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "ist_risk_var_latest",
+          "legendFormat": "VaR {{confidence_level}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Value at Risk (VaR)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"custom": {"fillOpacity": 30, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 35},
+      "id": 12,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "ist_risk_sharpe_ratio",
+          "legendFormat": "Sharpe {{portfolio_id}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Sharpe Ratio",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"custom": {"fillOpacity": 30, "lineWidth": 2}}
+      },
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 35},
+      "id": 13,
+      "options": {"tooltip": {"mode": "multi"}},
+      "targets": [
+        {
+          "expr": "ist_active_connections",
+          "legendFormat": "{{connection_type}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Active Connections",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["ist", "trading"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "IST Trading - Overview",
+  "uid": "ist-trading-overview",
+  "version": 1
+}

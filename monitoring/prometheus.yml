@@ -1,0 +1,53 @@
+# Prometheus configuration for IST Trading Platform
+# Scrapes IST API metrics and self-monitoring
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+
+  external_labels:
+    cluster: ist-trading
+    environment: production
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+  alert_relabel_configs: []
+  alertmanager_config:
+    - scheme: http
+      static_configs:
+        - targets:
+            - alertmanager:9093
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - localhost:9090
+
+  - job_name: ist-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - api:8000
+    scrape_interval: 10s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: ist-api
+
+  - job_name: ist-api-system
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - api:8000
+    scrape_interval: 30s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: ist_system_.+
+        action: keep

@@ -1,0 +1,164 @@
+# Alerting rules for IST Trading Platform
+
+groups:
+  - name: ist_system_alerts
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: ist_system_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is above 80% for 5 minutes (current: {{ $value }}%)"
+
+      - alert: CriticalCPUUsage
+        expr: ist_system_cpu_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical CPU usage"
+          description: "CPU usage is above 95% for 2 minutes (current: {{ $value }}%)"
+
+      - alert: HighMemoryUsage
+        expr: ist_system_memory_usage_percent > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 85% for 5 minutes (current: {{ $value }}%)"
+
+      - alert: CriticalMemoryUsage
+        expr: ist_system_memory_usage_percent > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: system
+        annotations:
+          summary: "Critical memory usage"
+          description: "Memory usage is above 95% for 2 minutes (current: {{ $value }}%)"
+
+  - name: ist_api_alerts
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          rate(ist_api_requests_total{status_code=~"5.."}[5m]) /
+          rate(ist_api_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High API error rate"
+          description: "5xx error rate is above 5% over 5 minutes (endpoint: {{ $labels.endpoint }})"
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(ist_api_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API latency"
+          description: "P95 latency is above 2 seconds (endpoint: {{ $labels.endpoint }})"
+
+      - alert: HighLatencyCritical
+        expr: |
+          histogram_quantile(0.95,
+            rate(ist_api_request_duration_seconds_bucket[5m])
+          ) > 5.0
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Critical API latency"
+          description: "P95 latency is above 5 seconds (endpoint: {{ $labels.endpoint }})"
+
+      - alert: APIInstanceDown
+        expr: up{job="ist-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API instance is down"
+          description: "The IST API instance {{ $labels.instance }} has been down for more than 1 minute"
+
+  - name: ist_risk_alerts
+    interval: 60s
+    rules:
+      - alert: HighDrawdown
+        expr: ist_risk_max_drawdown > 0.10
+        for: 5m
+        labels:
+          severity: warning
+          component: risk
+        annotations:
+          summary: "High portfolio drawdown"
+          description: "Max drawdown exceeded 10% (current: {{ $value | humanizePercentage }})"
+
+      - alert: CriticalDrawdown
+        expr: ist_risk_max_drawdown > 0.20
+        for: 2m
+        labels:
+          severity: critical
+          component: risk
+        annotations:
+          summary: "Critical portfolio drawdown"
+          description: "Max drawdown exceeded 20% (current: {{ $value | humanizePercentage }})"
+
+      - alert: HighVaR
+        expr: ist_risk_var_latest > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          component: risk
+        annotations:
+          summary: "High Value-at-Risk"
+          description: "VaR exceeded 5% at confidence level {{ $labels.confidence_level }}"
+
+      - alert: NegativeSharpeRatio
+        expr: ist_risk_sharpe_ratio < 0
+        for: 30m
+        labels:
+          severity: warning
+          component: risk
+        annotations:
+          summary: "Negative Sharpe ratio"
+          description: "Portfolio {{ $labels.portfolio_id }} Sharpe ratio is negative"
+
+  - name: ist_business_alerts
+    interval: 60s
+    rules:
+      - alert: OrderFailureRateHigh
+        expr: |
+          rate(ist_orders_executed_total{result="failed"}[10m]) /
+          rate(ist_orders_executed_total[10m]) > 0.10
+        for: 10m
+        labels:
+          severity: critical
+          component: execution
+        annotations:
+          summary: "High order failure rate"
+          description: "Order failure rate above 10% for strategy {{ $labels.strategy }}"
+
+      - alert: NoOrdersExecuted
+        expr: rate(ist_orders_executed_total[15m]) == 0
+        for: 15m
+        labels:
+          severity: warning
+          component: execution
+        annotations:
+          summary: "No orders executed recently"
+          description: "No orders executed in the last 15 minutes"

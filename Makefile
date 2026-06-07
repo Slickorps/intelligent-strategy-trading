@@ -201,6 +201,26 @@ profile:
 	. venv/bin/activate && python -m cProfile -o profile.stats src/ist/main.py
 
 # Monitoring
+# Monitoring
+monitoring-up:
+	@echo "Starting monitoring stack (Prometheus + Grafana)..."
+	docker-compose --profile monitoring up -d prometheus grafana
+	@echo "Monitoring stack started!"
+	@echo "  Prometheus: http://localhost:9090"
+	@echo "  Grafana:    http://localhost:3000 (admin/admin)"
+
+monitoring-down:
+	@echo "Stopping monitoring stack..."
+	docker-compose --profile monitoring down
+
+monitoring-logs:
+	@echo "Showing monitoring logs..."
+	docker-compose --profile monitoring logs -f prometheus grafana
+
+monitoring-restart:
+	@echo "Restarting monitoring stack..."
+	docker-compose --profile monitoring restart prometheus grafana
+
 monitor:
 	@echo "Starting monitoring dashboard..."
 	. venv/bin/activate && python src/ist/monitoring/dashboard.py
