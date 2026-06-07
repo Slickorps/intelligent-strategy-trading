@@ -224,13 +224,27 @@ similar = memory.query_similar_strategies(
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/health` | GET | Service health check |
+| `/health` | GET | Basic service health check |
+| `/health/detail` | GET | Detailed component health (DB, Redis, system) |
+| `/metrics` | GET | Prometheus metrics endpoint |
+| `/version` | GET | API version information |
 | `/strategies` | GET/POST | List/create strategies |
+| `/strategies/{id}` | GET/DELETE | Get/delete strategy |
 | `/strategies/{id}/flowchart` | GET | Get strategy visualization data |
-| `/strategies/{id}/backtest` | POST | Run backtest |
+| `/backtest` | GET | List backtests |
+| `/backtest/run` | POST | Run backtest |
+| `/backtest/{id}/status` | GET | Get backtest status |
 | `/backtest/{id}/results` | GET | Retrieve backtest results |
 | `/portfolio/analyze` | POST | Portfolio risk analysis |
+| `/portfolio/rebalance/check` | POST | Check rebalancing needs |
 | `/risk/simulate` | POST | Monte Carlo simulation |
+| `/risk/stress-test` | POST | Stress test scenarios |
+| `/risk/budget/calculate` | POST | Risk budget allocation |
+| `/risk/ml-factors/train` | POST | Train ML factor model |
+| `/risk/ml-factors/predict` | POST | Predict with ML model |
+| `/risk/ml-factors/models` | GET | List trained ML models |
+| `/risk/ml-factors/models/{id}` | GET/DELETE | Get/delete ML model |
+| `/risk/ml-factors/walk-forward` | POST | Walk-forward optimization |
 
 Full API documentation available at `/docs` (Swagger UI) when server is running.
 
@@ -262,10 +276,11 @@ ruff format src/
 - [x] Event-driven backtest engine
 - [x] Multi-factor risk modeling
 - [x] Monte Carlo path simulation
-- [ ] Live broker integrations (Interactive Brokers, OANDA)
+- [x] Live broker integrations (Interactive Brokers, OANDA, Alpaca)
+- [x] Machine learning factor integration
+- [x] Prometheus + Grafana monitoring
 - [ ] WebSocket real-time data
 - [ ] Web-based visual editor
-- [ ] Machine learning factor integration
 
 ## Docker Deployment
 
@@ -275,7 +290,26 @@ docker-compose up -d
 
 # With PostgreSQL and Redis
 docker-compose --profile production up -d
+```
 
+### Monitoring Stack
+
+```bash
+# Start Prometheus + Grafana
+docker-compose --profile monitoring up -d
+
+# Access dashboards
+# Grafana: http://localhost:3000 (admin/admin)
+# Prometheus: http://localhost:9090
+```
+
+Pre-configured Grafana dashboard "IST Trading - Overview" includes:
+- System metrics (CPU, memory, threads)
+- API metrics (request rate, P95 latency, error rate)
+- Business metrics (order executions, latency)
+- Risk metrics (drawdown, VaR, Sharpe ratio, active connections)
+
+```bash
 # Access API
 curl http://localhost:8000/health
 ```
