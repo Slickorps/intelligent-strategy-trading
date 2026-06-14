@@ -22,7 +22,7 @@ httpx>=0.24.0
 typer>=0.9.0
 
 # Reporting & Export (optional)
-fpdf2>=2.7.0
+fpdf2>=2.8.7
 openpyxl>=3.1.0
 # weasyprint>=60.0  # Uncomment for PDF generation via HTML/CSS
 # mplfinance>=0.12.0  # Uncomment for chart export
