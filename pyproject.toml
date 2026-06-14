@@ -43,7 +43,7 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=5.0.0",
     "ruff>=0.7.0",
-    "mypy>=1.13.0",
+    "mypy>=2.1.0",
     "pre-commit>=4.0.0",
 ]
 backtest = [
