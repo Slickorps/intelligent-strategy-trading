@@ -33,7 +33,7 @@ joblib>=1.3.0
 
 # Monitoring
 prometheus_client>=0.20.0
-psutil>=5.9.0
+psutil>=7.2.2
 
 # Development (optional)
 pytest>=8.0.0
