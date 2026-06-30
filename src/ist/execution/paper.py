@@ -121,15 +121,15 @@ class PaperBroker(BrokerAdapter):
         if quote is None:
             return None
         
+        mid = quote.close
         return Quote(
+            timestamp=quote.timestamp,
             symbol=quote.symbol,
-            bid=quote.bid if hasattr(quote, 'bid') else quote.close,
-            ask=quote.ask if hasattr(quote, 'ask') else quote.close,
-            bid_size=0.0,
-            ask_size=0.0,
-            last=quote.close,
-            last_size=0.0,
-            timestamp=quote.timestamp
+            open=mid,
+            high=mid,
+            low=mid,
+            close=mid,
+            volume=0.0,
         )
     
     async def place_order(self, order: Order) -> OrderResult:
@@ -229,11 +229,11 @@ class PaperBroker(BrokerAdapter):
         for symbol, position in self._positions.items():
             quote = await self.get_quote(symbol)
             if quote:
-                position.market_price = quote.last
-                position.market_value = abs(position.quantity) * quote.last
+                position.market_price = quote.close
+                position.market_value = abs(position.quantity) * quote.close
                 if position.avg_entry_price > 0:
                     position.unrealized_pnl = (
-                        position.quantity * (quote.last - position.avg_entry_price)
+                        position.quantity * (quote.close - position.avg_entry_price)
                     )
         
         return list(self._positions.values())
@@ -248,23 +248,18 @@ class PaperBroker(BrokerAdapter):
     
     def _calculate_fill_price(self, order: Order, quote: Quote) -> float:
         """Calculate fill price with slippage."""
-        base_price = quote.last
-        
+        base_price = quote.close
+        slippage = base_price * self.slippage_amount
+
         if order.side.name == "BUY":
-            # Buy at ask or higher
-            base_price = quote.ask if quote.ask > 0 else quote.last
-            slippage = base_price * self.slippage_amount
             return base_price + slippage
         else:
-            # Sell at bid or lower
-            base_price = quote.bid if quote.bid > 0 else quote.last
-            slippage = base_price * self.slippage_amount
             return base_price - slippage
-    
+
     def _calculate_slippage(self, order: Order, quote: Quote) -> float:
         """Calculate slippage amount."""
         fill_price = self._calculate_fill_price(order, quote)
-        reference = quote.last
+        reference = quote.close
         return abs(fill_price - reference) * order.quantity
     
     async def _update_position(self, order: Order, fill_price: float) -> None:
@@ -311,7 +306,7 @@ class PaperBroker(BrokerAdapter):
         for symbol, pos in self._positions.items():
             quote = await self.get_quote(symbol)
             if quote:
-                position_value += pos.quantity * quote.last
+                position_value += pos.quantity * quote.close
         
         self._equity = self._cash + position_value
     

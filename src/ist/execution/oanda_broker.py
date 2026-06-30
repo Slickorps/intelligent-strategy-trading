@@ -207,15 +207,19 @@ class OandaBrokerAdapter(BrokerAdapter):
                 return None
 
             price = prices[0]
+            bid = float(price.get("bids", [{}])[0].get("price", 0.0))
+            ask = float(price.get("asks", [{}])[0].get("price", 0.0))
+            mid = (bid + ask) / 2 if bid > 0 and ask > 0 else float(price.get("closeoutBid", 0.0))
             from ist.data.models import Quote
 
             return Quote(
-                symbol=symbol,
-                bid=float(price.get("bids", [{}])[0].get("price", 0.0)),
-                ask=float(price.get("asks", [{}])[0].get("price", 0.0)),
-                last=float(price.get("closeoutBid", 0.0)),
-                volume=0,
                 timestamp=datetime.utcnow(),
+                symbol=symbol,
+                open=mid,
+                high=mid,
+                low=mid,
+                close=mid,
+                volume=0.0,
             )
 
         except Exception as e:

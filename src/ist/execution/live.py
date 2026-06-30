@@ -231,7 +231,7 @@ class LiveTradingEngine:
             return
         
         # Calculate quantity
-        quantity = position_value / quote.last
+        quantity = position_value / quote.close
         
         # Create order
         try:

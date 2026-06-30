@@ -559,9 +559,9 @@ class TestPosition:
 
     def test_market_value(self, timestamp):
         pos = Position("AAPL", 100, 150.0, timestamp)
-        assert pos.market_value == 0.0
+        assert pos.market_value() == 0.0
         pos.update_price(160.0)
-        # market_value is calculated on-the-fly
+        assert pos.market_value(160.0) == 16000.0
 
 
 class TestPerformanceAnalyzer:

@@ -199,14 +199,16 @@ class AlpacaBrokerAdapter(BrokerAdapter):
             data = response.json().get("trade", {})
 
             from ist.data.models import Quote
+            price = float(data.get("p", 0.0))
 
             return Quote(
-                symbol=symbol,
-                bid=float(data.get("p", 0.0)),
-                ask=float(data.get("p", 0.0)),
-                last=float(data.get("p", 0.0)),
-                volume=int(data.get("s", 0)),
                 timestamp=datetime.utcnow(),
+                symbol=symbol,
+                open=price,
+                high=price,
+                low=price,
+                close=price,
+                volume=float(data.get("s", 0)),
             )
 
         except Exception as e:
@@ -525,7 +527,7 @@ class AlpacaBrokerAdapter(BrokerAdapter):
         if order.order_type == OrderType.MARKET:
             return {
                 "symbol": alpaca_symbol,
-                "qty": str(int(order.quantity)),
+                "qty": str(order.quantity),
                 "side": side,
                 "type": "market",
                 "time_in_force": "gtc",
@@ -534,7 +536,7 @@ class AlpacaBrokerAdapter(BrokerAdapter):
         elif order.order_type == OrderType.LIMIT and order.limit_price:
             return {
                 "symbol": alpaca_symbol,
-                "qty": str(int(order.quantity)),
+                "qty": str(order.quantity),
                 "side": side,
                 "type": "limit",
                 "limit_price": str(order.limit_price),
@@ -544,7 +546,7 @@ class AlpacaBrokerAdapter(BrokerAdapter):
         elif order.order_type == OrderType.STOP and order.stop_price:
             return {
                 "symbol": alpaca_symbol,
-                "qty": str(int(order.quantity)),
+                "qty": str(order.quantity),
                 "side": side,
                 "type": "stop",
                 "stop_price": str(order.stop_price),
@@ -554,7 +556,7 @@ class AlpacaBrokerAdapter(BrokerAdapter):
         # Default market order
         return {
             "symbol": alpaca_symbol,
-            "qty": str(int(order.quantity)),
+            "qty": str(order.quantity),
             "side": side,
             "type": "market",
             "time_in_force": "gtc",

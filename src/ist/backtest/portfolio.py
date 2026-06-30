@@ -46,7 +46,6 @@ class Position:
     def is_flat(self) -> bool:
         return abs(self.quantity) < 0.0001
     
-    @property
     def market_value(self, current_price: float = 0.0) -> float:
         """Calculate market value at given price."""
         return abs(self.quantity) * current_price

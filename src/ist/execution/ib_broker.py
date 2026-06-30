@@ -419,13 +419,15 @@ class IBBrokerAdapter(BrokerAdapter):
 
         from ist.data.models import Quote
 
+        last = float(ticker.last) if ticker.last else 0.0
         return Quote(
-            symbol=symbol,
-            bid=float(ticker.bid) if ticker.bid else 0.0,
-            ask=float(ticker.ask) if ticker.ask else 0.0,
-            last=float(ticker.last) if ticker.last else 0.0,
-            volume=int(ticker.volume) if ticker.volume else 0,
             timestamp=datetime.utcnow(),
+            symbol=symbol,
+            open=last,
+            high=last,
+            low=last,
+            close=last,
+            volume=float(ticker.volume) if ticker.volume else 0.0,
         )
 
     @staticmethod
