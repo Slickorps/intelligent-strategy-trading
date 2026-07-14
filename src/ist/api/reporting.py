@@ -45,34 +45,16 @@ class ReportGenerator:
         report_type: str = "backtest"
     ) -> str:
         """Generate HTML report.
-        
+
         Args:
             data: Report data dictionary
             title: Report title
             report_type: Type of report (backtest, portfolio, risk)
-            
+
         Returns:
             HTML string
         """
-        if report_type == "backtest":
-            metrics = data.get("metrics", {})
-            trades = data.get("trades", [])
-            equity_curve = data.get("equity_curve", [])
-            return self._reporter.generate_html_report(
-                metrics=metrics,
-                trades=trades,
-                equity_curve=equity_curve,
-                title=title,
-            )
-        elif report_type == "portfolio":
-            return self._reporter.generate_portfolio_report(data, title)
-        elif report_type == "risk":
-            return self._reporter.generate_risk_report(data, title)
-        else:
-            return self._reporter.generate_html_report(
-                metrics=data.get("metrics", {}),
-                title=title,
-            )
+        return self._reporter.generate_html_report(data, title, report_type)
     
     def export_to_json(
         self,
@@ -91,7 +73,7 @@ class ReportGenerator:
         equity_curve: list[dict]
     ) -> str:
         """Export equity curve to CSV."""
-        return self._reporter.export_equity_curve_to_csv(equity_curve)
+        return self._reporter.export_trades_to_csv(equity_curve)
     
     def generate_pdf_report(
         self,

@@ -86,7 +86,13 @@ class GetMarketDataTool(BaseTool):
                 "recommendation": "hold"
             }
             
-            return f"Market Data for {symbol}:\n" + \\n                   f"  Latest Price: {data_summary['latest_price']}\n" + \\n                   f"  20-day Volatility: {data_summary['volatility_20d']:.1%}\n" + \\n                   f"  Trend: {data_summary['trend']}\n" + \\n                   f"  Recommendation: {data_summary['recommendation']}"
+            return (
+                f"Market Data for {symbol}:\n"
+                f"  Latest Price: {data_summary['latest_price']}\n"
+                f"  20-day Volatility: {data_summary['volatility_20d']:.1%}\n"
+                f"  Trend: {data_summary['trend']}\n"
+                f"  Recommendation: {data_summary['recommendation']}"
+            )
             
         except Exception as e:
             return f"Error fetching market data: {str(e)}"
@@ -133,7 +139,13 @@ class RunBacktestTool(BaseTool):
             
             backtest_id = result.get("data", {}).get("backtest_id")
             
-            return f"Backtest scheduled successfully:\n" + \\n                   f"  Backtest ID: {backtest_id}\n" + \\n                   f"  Strategy ID: {strategy_id}\n" + \\n                   f"  Period: {start_date} to {end_date}\n" + \\n                   f"  Status: {result.get('data', {}).get('status', 'pending')}"
+            return (
+                f"Backtest scheduled successfully:\n"
+                f"  Backtest ID: {backtest_id}\n"
+                f"  Strategy ID: {strategy_id}\n"
+                f"  Period: {start_date} to {end_date}\n"
+                f"  Status: {result.get('data', {}).get('status', 'pending')}"
+            )
             
         except Exception as e:
             return f"Error running backtest: {str(e)}"
@@ -228,7 +240,13 @@ class AnalyzeRiskTool(BaseTool):
                 
                 data = result.get("data", {}).get("results", {})
                 
-                return f"Monte Carlo Simulation Results:\n" + \\n                       f"  Expected 1Y Return: {data.get('expected_return_1y', 0):.2%}\n" + \\n                       f"  Max Drawdown (P95): {data.get('max_drawdown_p95', 0):.2%}\n" + \\n                       f"  VaR 95%: {data.get('value_at_risk_95', 0):.2%}\n" + \\n                       f"  Positive Return Prob: {data.get('probability_of_positive_return', 0):.1%}"
+                return (
+                    f"Monte Carlo Simulation Results:\n"
+                    f"  Expected 1Y Return: {data.get('expected_return_1y', 0):.2%}\n"
+                    f"  Max Drawdown (P95): {data.get('max_drawdown_p95', 0):.2%}\n"
+                    f"  VaR 95%: {data.get('value_at_risk_95', 0):.2%}\n"
+                    f"  Positive Return Prob: {data.get('probability_of_positive_return', 0):.1%}"
+                )
             
             elif analysis_type == "stress_test":
                 result = self.client.run_stress_test(
@@ -248,7 +266,13 @@ class AnalyzeRiskTool(BaseTool):
             
             else:
                 # Summary
-                return f"Risk Summary:\n" + \\n                       f"  Portfolio VaR (95%): 2.8%\n" + \\n                       f"  Expected Shortfall: 3.5%\n" + \\n                       f"  Beta to SPX: 0.65\n" + \\n                       f"  Overall Risk Rating: MODERATE"
+                return (
+                    f"Risk Summary:\n"
+                    f"  Portfolio VaR (95%): 2.8%\n"
+                    f"  Expected Shortfall: 3.5%\n"
+                    f"  Beta to SPX: 0.65\n"
+                    f"  Overall Risk Rating: MODERATE"
+                )
             
         except Exception as e:
             return f"Error analyzing risk: {str(e)}"
