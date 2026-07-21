@@ -826,8 +826,8 @@ def _setup_pdf_font(pdf: Any) -> None:
         pdf.add_font("DejaVu", "", r"C:\Windows\Fonts\DejaVuSans.ttf", uni=True)
         pdf.add_font("DejaVu", "B", r"C:\Windows\Fonts\DejaVuSans-Bold.ttf", uni=True)
         pdf.set_font("DejaVu", "", 11)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning("Failed to load DejaVu font, falling back to Helvetica", error=str(e))
 
 
 # ------------------------------------------------------------------

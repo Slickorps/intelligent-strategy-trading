@@ -199,7 +199,9 @@ async def predict(
                 proba = factor.predict_proba(X).tolist()
                 result.probabilities = proba
             except AttributeError:
-                pass
+                logger.debug(
+                    "Model does not support predict_proba", model_id=model_id
+                )
 
         return BaseResponse(
             success=True,

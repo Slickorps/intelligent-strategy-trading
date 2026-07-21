@@ -82,6 +82,7 @@ class ParameterOptimizer:
         
         best_result = None
         best_fitness = float('-inf')
+        failed_count = 0
         
         for i, combo in enumerate(product(*values)):
             params = dict(zip(keys, combo))
@@ -108,16 +109,19 @@ class ParameterOptimizer:
                                f"Best: {best_fitness:.3f}")
                 
             except Exception as e:
+                failed_count += 1
                 logger.warning(f"Backtest failed for {params}: {e}")
                 continue
-        
+
         if best_result is None:
             raise ValueError("All backtests failed")
-        
+
         logger.info(
             "Grid search completed",
             best_fitness=best_fitness,
-            best_params=best_result.params
+            best_params=best_result.params,
+            total_combinations=total_combinations,
+            failed_count=failed_count,
         )
         
         return best_result

@@ -89,8 +89,7 @@ class EventBus:
             try:
                 handler(event)
             except Exception as e:
-                # Log error but don't stop other handlers
-                print(f"Event handler error: {e}")
+                logger.error("Event handler error", event_type=event.event_type, error=str(e))
     
     def create_event(
         self,

@@ -185,7 +185,7 @@ def collect_system_metrics() -> None:
         SYSTEM_OPEN_FDS.set(process.num_fds() if hasattr(process, "num_fds") else 0)
         SYSTEM_THREAD_COUNT.set(process.num_threads())
     except Exception:
-        pass
+        logger.debug("Failed to collect system metrics", exc_info=True)
 
 
 def set_application_info(
@@ -291,4 +291,4 @@ def clear_position_exposure(symbol: str, direction: str) -> None:
     try:
         RISK_POSITION_EXPOSURE.remove(symbol, direction)
     except KeyError:
-        pass
+        logger.debug("Failed to remove position exposure metric", exc_info=True)
