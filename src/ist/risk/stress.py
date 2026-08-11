@@ -198,7 +198,7 @@ class StressTester:
             final_equity=final_equity,
             drawdown=drawdown,
             recovery_days=recovery_days,
-            survival_probability=survival_probability,
+            survival_probability=survival_prob,
             stressed_var_95=stressed_var_95,
             stressed_var_99=stressed_var_99,
             breaches_limits=breaches,
