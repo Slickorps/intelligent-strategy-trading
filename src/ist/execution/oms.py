@@ -26,6 +26,7 @@ class OrderState(Enum):
     VALIDATED = auto()
     SUBMITTED = auto()
     ACKNOWLEDGED = auto()
+    PENDING = auto()
     PARTIAL_FILL = auto()
     FILLED = auto()
     CANCEL_REQUESTED = auto()
@@ -296,6 +297,12 @@ class OrderManagementSystem:
                     OrderState.CANCELLED,
                     "Order cancelled"
                 )
+            elif result.status == OrderStatus.EXPIRED:
+                managed.add_event(
+                    OrderState.EXPIRED,
+                    "Order expired"
+                )
+                managed.completed_at = datetime.utcnow()
         
         return result
     
