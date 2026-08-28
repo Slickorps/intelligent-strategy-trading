@@ -5,6 +5,10 @@ from datetime import datetime
 from enum import Enum, auto
 from typing import Any, Callable
 
+from ist.core.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 class EventType(Enum):
     """Types of events in the system."""
