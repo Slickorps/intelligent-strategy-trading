@@ -174,9 +174,10 @@ class ThresholdNode(StrategyNode):
     """
     
     def __init__(self, node_id: str, params: Optional[dict] = None) -> None:
+        params = params or {}
+        self.levels = params.get("levels", [30, 50, 70])
+        self.mode = params.get("mode", "single")
         super().__init__(node_id, NodeType.CONDITION, params)
-        self.levels = self.params.get("levels", [30, 50, 70])
-        self.mode = self.params.get("mode", "single")
     
     def _setup_inputs(self) -> None:
         self.inputs["value"] = NodeInput("value", "float", required=True)

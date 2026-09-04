@@ -53,13 +53,14 @@ class IndicatorNode(StrategyNode):
     }
 
     def __init__(self, node_id: str, params: Optional[dict] = None) -> None:
-        super().__init__(node_id, NodeType.INDICATOR, params)
-        self.indicator = self.params.get("indicator", "SMA")
-        self.period = self.params.get("period", 14)
-        self.period2 = self.params.get("period2", 26)
-        self.period3 = self.params.get("period3", 9)
+        params = params or {}
+        self.indicator = params.get("indicator", "SMA")
+        self.period = params.get("period", 14)
+        self.period2 = params.get("period2", 26)
+        self.period3 = params.get("period3", 9)
 
         self._history: list[float] = []
+        super().__init__(node_id, NodeType.INDICATOR, params)
         self._indicator_instance = self._build_indicator()
 
     def _build_indicator(self):

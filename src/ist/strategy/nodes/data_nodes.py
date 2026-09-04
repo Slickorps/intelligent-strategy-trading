@@ -65,9 +65,10 @@ class MultiDataSourceNode(StrategyNode):
     """
     
     def __init__(self, node_id: str, params: Optional[dict] = None) -> None:
+        params = params or {}
+        self.symbols = params.get("symbols", ["EURUSD"])
+        self.timeframe = params.get("timeframe", "1h")
         super().__init__(node_id, NodeType.DATA_SOURCE, params)
-        self.symbols = self.params.get("symbols", ["EURUSD"])
-        self.timeframe = self.params.get("timeframe", "1h")
     
     def _setup_inputs(self) -> None:
         pass
