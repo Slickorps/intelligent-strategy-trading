@@ -252,7 +252,7 @@ Full API documentation available at `/docs` (Swagger UI) when server is running.
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/intelligent-strategy-trading.git
+git clone https://github.com/Slickorps/intelligent-strategy-trading.git
 cd intelligent-strategy-trading
 
 # Install with development dependencies
