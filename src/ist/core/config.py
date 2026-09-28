@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000)
     api_workers: int = Field(default=1)
     
+    # API Security
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:8000"
+    )
+    api_key: Optional[str] = Field(default=None)
+    
     # Data
     data_path: str = Field(default="./data")
     cache_enabled: bool = Field(default=True)
@@ -48,6 +54,15 @@ class Settings(BaseSettings):
     # Logging
     log_level: str = Field(default="INFO")
     log_format: str = Field(default="json")
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Parse the comma-separated ``cors_origins`` value into a list."""
+        return [
+            origin.strip()
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
 
 
 _settings: Optional[Settings] = None

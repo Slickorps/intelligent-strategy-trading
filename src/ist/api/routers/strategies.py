@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, status
 
-from ist.api.schemas.base import BaseResponse, ErrorResponse
+from ist.api.schemas.base import BaseResponse
 from ist.api.schemas.strategy import (
     StrategyCreate,
     StrategyResponse,
