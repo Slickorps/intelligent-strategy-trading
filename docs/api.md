@@ -18,11 +18,20 @@ Intelligent Strategy Trading Platform provides a RESTful API for:
 
 ## Authentication
 
-Currently, the API does not require authentication. For production deployment, implement:
+API-key authentication is optional. Set `API_KEY` in the environment to
+enable it; when set, all non-exempt routes require the key via either:
 
 ```
-Authorization: Bearer <token>
+X-API-Key: <API_KEY>
+Authorization: Bearer <API_KEY>
 ```
+
+Exempt routes: `/`, `/health`, `/health/detail`, `/version`, `/metrics`,
+`/docs`, `/redoc`, `/openapi.json`. When `API_KEY` is unset, no
+authentication is required.
+
+CORS origins are configured with `CORS_ORIGINS` (comma-separated,
+defaulting to localhost).
 
 ---
 
@@ -873,13 +882,87 @@ Production deployments should implement rate limiting:
 
 ---
 
-## WebSocket (Future)
+## WebSocket
 
-Real-time data streaming (planned):
+Real-time streaming of market data and internal events.
+
+### Authentication
+
+When `API_KEY` is configured, the key must be supplied as a query
+parameter (or the `X-API-Key` header during the handshake):
 
 ```
-ws://localhost:8000/ws/market-data
-ws://localhost:8000/ws/trade-updates
+ws://localhost:8000/ws/market/EURUSD?api_key=<API_KEY>
+```
+
+When `API_KEY` is unset, WebSocket endpoints are open.
+
+### `WS /ws/market/{symbol}`
+
+Streams real-time updates for a single symbol and subscribes the client
+to the `market:<symbol>` channel.
+
+On connect the server sends:
+
+```json
+{"type": "subscribed", "channel": "market:EURUSD", "symbol": "EURUSD"}
+```
+
+Each update is an event envelope:
+
+```json
+{
+  "type": "event",
+  "event": "price_update",
+  "timestamp": "2026-10-08T06:50:00.000000",
+  "payload": {"symbol": "EURUSD", "close": 1.1234},
+  "source": ""
+}
+```
+
+Send `{"action": "ping"}` to receive `{"type": "pong"}`.
+
+### `WS /ws/events`
+
+Streams internal events. Clients subscribe to channels named after the
+event type (lower case), e.g. `price_update`, `bar_close`,
+`signal_generated`, `order_filled`.
+
+Client messages:
+
+```json
+{"action": "subscribe", "channels": ["price_update", "signal_generated"]}
+{"action": "unsubscribe", "channels": ["price_update"]}
+{"action": "ping"}
+```
+
+Server acknowledgements:
+
+```json
+{"type": "connected", "endpoint": "events"}
+{"type": "subscribed", "channels": ["price_update"]}
+{"type": "unsubscribed", "channels": ["price_update"]}
+{"type": "pong"}
+{"type": "error", "message": "unknown action"}
+```
+
+### Python example
+
+```python
+import asyncio
+import websockets
+
+
+async def main():
+    async with websockets.connect(
+        "ws://localhost:8000/ws/market/EURUSD"
+    ) as ws:
+        print(await ws.recv())  # {"type": "subscribed", ...}
+        async for message in ws:
+            print(message)
+
+
+asyncio.run(main())
 ```
 
 ---

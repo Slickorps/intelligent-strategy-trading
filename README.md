@@ -279,7 +279,7 @@ ruff format src/
 - [x] Live broker integrations (Interactive Brokers, OANDA, Alpaca)
 - [x] Machine learning factor integration
 - [x] Prometheus + Grafana monitoring
-- [ ] WebSocket real-time data
+- [x] WebSocket real-time data
 - [ ] Web-based visual editor
 
 ## Docker Deployment

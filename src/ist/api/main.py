@@ -11,8 +11,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from ist.api.routers import backtest, health, ml_factors, portfolio, risk, strategies
+from ist.api.routers import (
+    backtest,
+    health,
+    ml_factors,
+    portfolio,
+    risk,
+    strategies,
+    websocket,
+)
 from ist.api.schemas.base import ErrorResponse
+from ist.api.websocket_manager import WebSocketHub, attach_event_bus
 from ist.core.config import get_settings
 from ist.core.events import EventBus
 from ist.core.exceptions import ISTError
@@ -83,6 +92,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize shared resources
     app.state.event_bus = EventBus()
+    attach_event_bus(app.state.websocket_hub, app.state.event_bus)
 
     yield
 
@@ -103,6 +113,9 @@ def create_app() -> FastAPI:
         openapi_url="/openapi.json",
         lifespan=lifespan,
     )
+
+    # Real-time WebSocket hub (shared across connections)
+    app.state.websocket_hub = WebSocketHub()
 
     # Request metrics middleware
     @app.middleware("http")
@@ -230,6 +243,7 @@ def create_app() -> FastAPI:
     app.include_router(portfolio.router, prefix="/portfolio", tags=["Portfolio"])
     app.include_router(risk.router, prefix="/risk", tags=["Risk"])
     app.include_router(ml_factors.router, prefix="/risk", tags=["ML Factors"])
+    app.include_router(websocket.router, tags=["WebSocket"])
 
     return app
 
