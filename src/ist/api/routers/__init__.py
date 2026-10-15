@@ -2,6 +2,7 @@
 
 from ist.api.routers import (
     backtest,
+    editor,
     health,
     ml_factors,
     portfolio,
@@ -18,4 +19,5 @@ __all__ = [
     "risk",
     "ml_factors",
     "websocket",
+    "editor",
 ]

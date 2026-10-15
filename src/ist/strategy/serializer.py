@@ -46,6 +46,7 @@ STRATEGY_SCHEMA_V1 = {
                         "type": "string",
                         "enum": [
                             "DataSourceNode", "MultiDataSourceNode",
+                            "DataFilterNode",
                             "IndicatorNode",
                             "ConditionNode", "LogicGateNode", "ThresholdNode",
                             "ActionNode", "RebalanceNode", "TrailingStopNode",

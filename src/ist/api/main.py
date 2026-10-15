@@ -3,16 +3,19 @@
 import secrets
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ist.api.routers import (
     backtest,
+    editor,
     health,
     ml_factors,
     portfolio,
@@ -36,6 +39,8 @@ from ist.core.monitoring import (
 
 logger = get_logger(__name__)
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
 # Paths that stay reachable without an API key (probes, docs, metrics).
 AUTH_EXEMPT_PATHS = frozenset({
     "/",
@@ -47,6 +52,14 @@ AUTH_EXEMPT_PATHS = frozenset({
     "/redoc",
     "/openapi.json",
 })
+
+# Path prefixes that stay reachable without an API key (static UI assets).
+AUTH_EXEMPT_PREFIXES = ("/static", "/editor")
+
+
+def _is_auth_exempt(path: str) -> bool:
+    """Whether a request path bypasses API-key authentication."""
+    return path in AUTH_EXEMPT_PATHS or path.startswith(AUTH_EXEMPT_PREFIXES)
 
 
 def _error_payload(code: str, message: str, details: dict | None = None) -> dict:
@@ -117,6 +130,9 @@ def create_app() -> FastAPI:
     # Real-time WebSocket hub (shared across connections)
     app.state.websocket_hub = WebSocketHub()
 
+    # Static assets for the visual strategy editor
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
     # Request metrics middleware
     @app.middleware("http")
     async def metrics_middleware(request: Request, call_next):
@@ -152,7 +168,7 @@ def create_app() -> FastAPI:
     @app.middleware("http")
     async def api_key_middleware(request: Request, call_next):
         api_key = get_settings().api_key
-        if api_key and request.url.path not in AUTH_EXEMPT_PATHS:
+        if api_key and not _is_auth_exempt(request.url.path):
             provided = _extract_api_key(request)
             if not provided or not secrets.compare_digest(provided, api_key):
                 logger.warning(
@@ -244,6 +260,7 @@ def create_app() -> FastAPI:
     app.include_router(risk.router, prefix="/risk", tags=["Risk"])
     app.include_router(ml_factors.router, prefix="/risk", tags=["ML Factors"])
     app.include_router(websocket.router, tags=["WebSocket"])
+    app.include_router(editor.router, tags=["Editor"])
 
     return app
 

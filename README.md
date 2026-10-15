@@ -280,7 +280,7 @@ ruff format src/
 - [x] Machine learning factor integration
 - [x] Prometheus + Grafana monitoring
 - [x] WebSocket real-time data
-- [ ] Web-based visual editor
+- [x] Web-based visual editor
 
 ## Docker Deployment
 
@@ -312,6 +312,11 @@ Pre-configured Grafana dashboard "IST Trading - Overview" includes:
 ```bash
 # Access API
 curl http://localhost:8000/health
+```
+
+```bash
+# Visual strategy editor (served by the API, no build step)
+# http://localhost:8000/editor
 ```
 
 See [docs/deployment.md](docs/deployment.md) for detailed deployment options.

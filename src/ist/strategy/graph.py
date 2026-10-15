@@ -12,7 +12,11 @@ from ist.strategy.nodes.base import (
     NodeState,
     StrategyNode,
 )
-from ist.strategy.nodes.data_nodes import DataSourceNode, MultiDataSourceNode
+from ist.strategy.nodes.data_nodes import (
+    DataFilterNode,
+    DataSourceNode,
+    MultiDataSourceNode,
+)
 from ist.strategy.nodes.indicator_nodes import IndicatorNode
 from ist.strategy.nodes.logic_nodes import ConditionNode, LogicGateNode, ThresholdNode
 from ist.strategy.nodes.action_nodes import ActionNode, RebalanceNode, TrailingStopNode
@@ -54,6 +58,7 @@ class StrategyGraph:
     NODE_TYPE_MAP = {
         "DataSourceNode": DataSourceNode,
         "MultiDataSourceNode": MultiDataSourceNode,
+        "DataFilterNode": DataFilterNode,
         "IndicatorNode": IndicatorNode,
         "ConditionNode": ConditionNode,
         "LogicGateNode": LogicGateNode,

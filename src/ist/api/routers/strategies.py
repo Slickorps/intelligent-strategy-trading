@@ -16,6 +16,7 @@ from ist.api.schemas.strategy import (
 )
 from ist.core.exceptions import ValidationError
 from ist.core.logging import get_logger
+from ist.strategy.nodes.catalog import build_node_catalog
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -114,6 +115,23 @@ async def list_strategies() -> BaseResponse[list[StrategyResponse]]:
         success=True,
         data=strategies,
         message=f"Found {len(strategies)} strategies"
+    )
+
+
+@router.get(
+    "/node-types",
+    response_model=BaseResponse[list[dict]],
+    status_code=status.HTTP_200_OK,
+    summary="List node types",
+    description="List strategy node types with parameters, inputs and outputs",
+)
+async def list_node_types() -> BaseResponse[list[dict]]:
+    """Return the catalog of strategy node types for visual editors."""
+    catalog = build_node_catalog()
+    return BaseResponse(
+        success=True,
+        data=catalog,
+        message=f"Found {len(catalog)} node types"
     )
 
 

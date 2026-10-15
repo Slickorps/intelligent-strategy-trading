@@ -173,6 +173,39 @@ List all trading strategies.
 }
 ```
 
+### GET /strategies/node-types
+
+List the strategy node types available for building graphs, including
+their parameters (with defaults/options), inputs and outputs. Used by the
+visual editor to render its palette.
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "type": "IndicatorNode",
+      "label": "Indicator",
+      "category": "INDICATOR",
+      "description": "Computes a technical indicator from a price stream.",
+      "params": [
+        {
+          "name": "indicator", "type": "str", "default": "SMA",
+          "options": ["SMA", "EMA", "RSI", "MACD", "ATR", "BollingerBands"]
+        }
+      ],
+      "inputs": [{"name": "price", "type": "float", "required": true}],
+      "outputs": [
+        {"name": "value", "type": "float"},
+        {"name": "slope", "type": "float"}
+      ]
+    }
+  ],
+  "message": "Found 12 node types"
+}
+```
+
 ### POST /strategies
 
 Create a new trading strategy.
@@ -964,6 +997,26 @@ async def main():
 
 asyncio.run(main())
 ```
+
+---
+
+## Visual Editor
+
+A single-page visual strategy editor is served by the API (no build step):
+
+```
+http://localhost:8000/editor
+```
+
+It loads node types from `GET /strategies/node-types`, lets you drag nodes
+onto a canvas, connect them, edit parameters, validate the graph, and save
+via `POST /strategies`. Saved strategies can be re-loaded from
+`GET /strategies/{id}/flowchart` (each node's `position` carries its canvas
+coordinates).
+
+Static assets are served under `/static/` (`editor.html`, `editor.css`,
+`editor.js`). Like `/editor`, they are exempt from API-key authentication;
+the API calls made by the page still require the key when `API_KEY` is set.
 
 ---
 

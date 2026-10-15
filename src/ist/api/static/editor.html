@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IST — Visual Strategy Editor</title>
+  <link rel="stylesheet" href="/static/editor.css" />
+</head>
+<body>
+  <header class="toolbar">
+    <h1>&#9881;&#65039; Visual Strategy Editor</h1>
+    <input type="text" id="strategy-name" placeholder="Strategy name" value="New Strategy" />
+    <input type="text" id="api-key" placeholder="API key (optional)" size="18" />
+    <select id="load-select" title="Load an existing strategy">
+      <option value="">Load strategy…</option>
+    </select>
+    <span class="spacer"></span>
+    <button id="btn-validate">Validate</button>
+    <button id="btn-save" class="primary">Save</button>
+  </header>
+
+  <main>
+    <aside class="left">
+      <h2>Node Palette</h2>
+      <div id="palette"></div>
+    </aside>
+
+    <div id="canvas-wrap">
+      <div id="canvas">
+        <svg id="edges" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+    </div>
+
+    <aside class="right">
+      <h2>Inspector</h2>
+      <div id="inspector">
+        <p class="io-list">Select a node to edit its parameters.</p>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="status">
+    <span id="status">Ready.</span>
+    <span id="strategy-id"></span>
+  </footer>
+
+  <script src="/static/editor.js"></script>
+</body>
+</html>
